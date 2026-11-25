@@ -8,9 +8,12 @@ import { useApp, useEntries, useRatings, useTargets, type DayEntry } from "../li
 import { MEAL_TYPES, type FoodDto, type MealType } from "../lib/types";
 import { SwipeRow } from "../ui/SwipeRow";
 import { FoodSheet } from "./FoodSheet";
-import { BarcodeSheet, QuickAddSheet } from "./QuickSheets";
+import { QuickAddSheet } from "./QuickSheets";
+import { ScanLearnSheet } from "./ScanLearn";
+import { ScanFlow } from "./Scanner";
+import { VoiceSheet } from "./Voice";
 
-type Open = null | { kind: "search"; food?: FoodDto } | { kind: "quick" } | { kind: "barcode" };
+type Open = null | { kind: "search"; food?: FoodDto } | { kind: "quick" } | { kind: "barcode" } | { kind: "photo" } | { kind: "voice" };
 
 export function Today({ today }: { today: string }) {
   const { humor, badge, toast } = useApp();
@@ -38,13 +41,13 @@ export function Today({ today }: { today: string }) {
         <button type="button" className="tile" onClick={() => setOpen({ kind: "barcode" })}>
           <span aria-hidden="true">▥</span>Barcode
         </button>
-        <button type="button" className="tile" onClick={() => toast(COPY.comingSoon(humor))}>
+        <button type="button" className="tile" onClick={() => setOpen({ kind: "photo" })}>
           <span aria-hidden="true">◉</span>Foto
         </button>
         <button type="button" className="tile" onClick={() => setOpen({ kind: "search" })}>
           <span aria-hidden="true">⌕</span>Suche
         </button>
-        <button type="button" className="tile" onClick={() => toast(COPY.comingSoon(humor))}>
+        <button type="button" className="tile" onClick={() => setOpen({ kind: "voice" })}>
           <span aria-hidden="true">◖</span>Sprache
         </button>
       </section>
@@ -120,7 +123,9 @@ export function Today({ today }: { today: string }) {
 
       {open?.kind === "search" && <FoodSheet date={today} initialMealType={slot} budget={b} initialFood={open.food ?? null} onClose={() => setOpen(null)} />}
       {open?.kind === "quick" && <QuickAddSheet date={today} initialMealType={slot} budget={b} onClose={() => setOpen(null)} />}
-      {open?.kind === "barcode" && <BarcodeSheet onClose={() => setOpen(null)} onFound={(food) => setOpen({ kind: "search", food })} />}
+      {open?.kind === "barcode" && <ScanFlow date={today} initialMealType={slot} onClose={() => setOpen(null)} />}
+      {open?.kind === "photo" && <ScanLearnSheet date={today} initialMealType={slot} onClose={() => setOpen(null)} />}
+      {open?.kind === "voice" && <VoiceSheet date={today} initialMealType={slot} onClose={() => setOpen(null)} />}
     </div>
   );
 }

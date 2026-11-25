@@ -9,7 +9,14 @@ describe("loadConfig", () => {
       tmpTtlMs: 24 * 60 * 60 * 1000,
       cleanupEveryMs: 60 * 60 * 1000,
       heartbeatFile: "/tmp/worker-heartbeat",
+      aiConcurrency: 2,
     });
+  });
+
+  it("limits the AI concurrency", () => {
+    expect(loadConfig({ AI_CONCURRENCY: "4" }).aiConcurrency).toBe(4);
+    expect(() => loadConfig({ AI_CONCURRENCY: "0" })).toThrow();
+    expect(() => loadConfig({ AI_CONCURRENCY: "1.5" })).toThrow();
   });
 
   it("reads the TTL in hours and rejects nonsense", () => {

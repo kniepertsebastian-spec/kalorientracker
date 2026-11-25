@@ -1,6 +1,6 @@
 /**
- * Queue names shared with the backend (it enqueues, this worker processes). Roadmap 04 adds the AI
- * jobs (photo scan, voice, recipe import via yt-dlp) to `AI_QUEUE`; until then only maintenance runs.
+ * Queue names shared with the backend (it enqueues, this worker processes). `AI_QUEUE` carries the
+ * recipe-import jobs (see recipe/jobs.ts); photo scan and voice run in the backend directly.
  */
 export const MAINTENANCE_QUEUE = "kcal-maintenance";
 export const AI_QUEUE = "kcal-ai";

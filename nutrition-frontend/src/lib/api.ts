@@ -71,6 +71,7 @@ export async function logout(fetchImpl: Fetch = fetch): Promise<void> {
 export class OfflineError extends Error {
   constructor() {
     super("Keine Verbindung");
+    this.name = "OfflineError";
   }
 }
 

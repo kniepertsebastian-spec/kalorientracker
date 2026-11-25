@@ -6,12 +6,28 @@
 | `ROADMAP-01-INFRA` | Docker, Caddy, Cookie-SSO, Redis | Abgeschlossen | 2026-11-25 13:00 |
 | `ROADMAP-02-BACKEND-DATA` | Prisma-Schema, BLS 4.0, API-Kern, Export | Abgeschlossen | 2026-11-25 16:08 |
 | `ROADMAP-03-FRONTEND-PWA` | Design-System, Offline-Sync, Logging-UI | Abgeschlossen | 2026-11-25 16:57 |
-| `ROADMAP-04-AI-CAPTURE` | Barcode, Scan & Learn, Sprache, KI-Rezeptimport | Offen | – |
+| `ROADMAP-04-AI-CAPTURE` | Barcode, Scan & Learn, Sprache, KI-Rezeptimport | Abgeschlossen (KI-Live-Abnahme offen) | 2026-11-25 20:35 |
 | `ROADMAP-05-INTEGRATION-QA` | Fitness-Sync, E2E-Tests, iOS-Feinschliff | Offen | – |
 
 ---
 
 <!-- Neue Einträge immer direkt HIER unter dieser Linie einfügen (neuester Timestamp zuerst) -->
+
+## [2026-11-25 20:35 CET] – ROADMAP-04: Scanner, Scan & Learn, Sprache, Rezeptimport, Wochen-Drops live
+- **Roadmap-Status:** Abgeschlossen (Live-Abnahme der KI-Pfade offen)
+- **Abgeschlossene Roadmaps bisher:** ROADMAP-01, ROADMAP-02, ROADMAP-03, ROADMAP-04
+- **Was wurde umgesetzt:**
+  - Fitnesstracker-Repo, Branch `feature/nutrition-04-capture` (gestapelt auf #116): Migration `20261125172433_nutrition_capture` (nur neue Tabellen `RecipeImport`, `NutritionWeeklyDrop` + Enums, FK auf `User`), Modul `backend/src/modules/nutritionCapture/` (Gemini-JSON-Client mit Standard `gemini-3.5-flash-lite`, Plausibilitätscheck 4P+4KH+9F(+2 Ballaststoffe), Etikett-Scan, Sprache mit DB-Abgleich, Rezeptimport mit JSON-LD/KI-Fallback und Konfidenzstatus, Zutatenparser, Wochen-Drops mit Sonntags-Scheduler und 8-Wochen-Sperre), Schemas in `packages/shared/src/schemas/nutritionCapture.schema.ts`. Backend 70 Dateien / 518 Tests grün, `prisma validate` ok.
+  - Worker (`worker/src/recipe/`): BullMQ-Queue `kcal-ai`, kostenlose Vorschau (Plattform, Titel), Import-Job mit `yt-dlp` + `ffmpeg` (Untertitel/Audio), SSRF-geschütztes `safeFetch`. 82 Tests grün.
+  - Frontend: `screens/Scanner.tsx` (ZXing-Dauerscan, Ton/Vibration, Liste, „Alle übernehmen“ mit Rückgängig, Übergabe an Scan & Learn), `ScanLearn.tsx` (Rückseiten-Foto, gelbe Markierung auffälliger Felder, „Speichern & direkt loggen“), `Voice.tsx` (MediaRecorder statt Web Speech, Text-Fallback, Vorschau mit Kandidaten), `RecipeImport.tsx` (Link/Foto/Video/Text, zweistufig, Konfidenz-Badges und offene Rückfragen, Verwerfen), `WeeklyDrops.tsx` (3–5 Ideen, 1-Tap, „≤ Restbudget“-Filter, Offline-Cache), Share Target im Manifest. 48 Vitest-Tests grün, Typecheck und Build sauber.
+  - Live-Abnahme mit dem Test-Account (`e2e/capture.mjs`, Start mit `e2e/run-capture.sh`, 390×844): 22/22 PASS, keine Konsolen- oder HTTP-Fehler, Tag nach dem Lauf unverändert. Dabei gefunden und behoben: Scanner-Zeilen wurden bei 390 px abgeschnitten (jetzt zweizeilig).
+  - Deploy: `backend`, `worker`, `nutrition-frontend` aus `~/ft-nutrition-04`; DB-Backup `20261125T175338Z` vorher.
+- **Stehengeblieben bei / Offene Punkte:**
+  - Test-Account hat keinen Gemini-Schlüssel: Foto-Scan in < 15 s und KI-Rezeptentwurf sind nur per Unit-/Integrationstest geprüft, nicht live.
+  - Übrige Fitnesstracker-Module nutzen weiter `gemini-2.5-flash` als Standard (ab 2026-12-01 von Google auf 3.5 Flash-Lite umgeleitet).
+  - PRs #115, #116 und der neue Capture-PR müssen gemergt werden; danach Deploy aus `~/fitnesstracker` und Worktrees entfernen.
+- **Nächster konkreter Schritt:**
+  - ROADMAP-05 starten: `docs/roadmaps/` Roadmap 05 lesen, mit Fitness-Sync und der E2E-Suite beginnen; parallel Gemini-Schlüssel für den Test-Account hinterlegen und `e2e/capture.mjs` um den Foto-Durchlauf erweitern.
 
 ## [2026-11-25 16:57 CET] – ROADMAP-03: Kalorien-PWA offline-fähig live
 - **Roadmap-Status:** Abgeschlossen

@@ -865,3 +865,296 @@ dialog.sheet::backdrop {
     transition: none !important;
   }
 }
+
+/* ─── Capture: scanner, Scan & Learn, voice, recipe import, weekly drops (Roadmap 04) ─────────── */
+.camera {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #000;
+  border: 1px solid var(--border);
+}
+.camera video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.camera-frame {
+  position: absolute;
+  inset: 28% 10%;
+  border: 2px solid var(--accent);
+  border-radius: 12px;
+  box-shadow: 0 0 0 999px rgb(11 9 20 / 0.35), 0 0 24px rgb(139 92 246 / 0.5);
+  pointer-events: none;
+}
+.camera-note {
+  position: absolute;
+  inset: auto 12px 12px;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgb(11 9 20 / 0.8);
+}
+.scan-list {
+  max-height: 40vh;
+  overflow-y: auto;
+}
+.list-row.static {
+  cursor: default;
+}
+/* 390 px: name on its own line, amount, unit and actions wrap below instead of being clipped. */
+.scan-list .list-row.static {
+  flex-wrap: wrap;
+  padding: 8px 8px 8px 12px;
+}
+.scan-list .list-row.static > .grow {
+  flex: 1 0 100%;
+  min-width: 0;
+}
+.scan-list .list-row.static > button.primary {
+  flex: 1 1 auto;
+}
+.scan-list .list-row.static > select {
+  flex: 1 1 6rem;
+  width: auto;
+  min-width: 0;
+}
+.scan-footer {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  gap: 8px;
+  padding-top: 8px;
+  background: var(--surface);
+}
+.qty-input {
+  width: 5.5rem;
+  text-align: right;
+}
+
+.photo-field {
+  position: relative;
+  display: grid;
+  gap: 6px;
+}
+.photo-field input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.photo-pick {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 72px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 14px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-weight: 600;
+  cursor: pointer;
+}
+.photo-pick.on {
+  border-style: solid;
+  border-color: var(--ok);
+  color: var(--ok);
+}
+.photo-field:focus-within .photo-pick {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.nutrient-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.nutrient-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.status-tag {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  color: var(--muted);
+}
+/* Suspicious / estimated values: yellow, so they get a second look. */
+.suspect input,
+.suspect select,
+input.suspect {
+  border-color: var(--warn);
+  box-shadow: 0 0 0 1px rgb(251 191 36 / 0.35);
+}
+.suspect .status-tag,
+.suspect .nutrient-label {
+  color: var(--warn);
+}
+li.suspect,
+.card.suspect {
+  border-color: rgb(251 191 36 / 0.55);
+}
+.notice {
+  border-radius: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.notice ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+.notice.warn {
+  border-color: rgb(251 191 36 / 0.5);
+  background: rgb(251 191 36 / 0.08);
+  color: var(--text);
+}
+.notice.warn strong,
+.warn-text {
+  color: var(--warn);
+}
+.ok {
+  color: var(--ok);
+}
+.badge.soft {
+  background: transparent;
+  color: var(--warn);
+  border: 1px solid rgb(251 191 36 / 0.45);
+}
+.units,
+.notes {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--tap);
+}
+.check-row input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  min-height: 0;
+  accent-color: var(--accent);
+  flex: none;
+}
+
+.record {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 72px;
+  font-size: 1.1rem;
+  border-radius: 999px;
+}
+.record.on {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: rgb(248 113 113 / 0.1);
+  animation: record-pulse 1.4s ease-in-out infinite;
+}
+@keyframes record-pulse {
+  50% {
+    box-shadow: 0 0 0 8px rgb(248 113 113 / 0.12);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .record.on {
+    animation: none;
+  }
+}
+.voice-item,
+.review-row {
+  display: grid;
+  gap: 8px;
+}
+.review-row {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.review-row:last-child {
+  border-bottom: 0;
+}
+.kcal-cell {
+  min-width: 4.5rem;
+  text-align: right;
+  align-self: center;
+}
+.conf {
+  flex: none;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+}
+.conf-verified {
+  color: var(--ok);
+}
+.conf-estimated {
+  color: var(--warn);
+}
+.conf-unknown {
+  color: var(--danger);
+}
+.import-card {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.import-card .name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.import-status.s-ready {
+  color: var(--ok);
+}
+.import-status.s-failed {
+  color: var(--danger);
+}
+.import-status.s-extracting,
+.import-status.s-extract_pending,
+.import-status.s-preview_pending {
+  color: var(--accent);
+}
+.steps {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+}
+textarea {
+  resize: vertical;
+}
+
+.drops .drop {
+  display: grid;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.drops .drop:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.drop-body {
+  display: grid;
+  gap: 8px;
+  padding: 0 4px;
+}
+.drop-body ul {
+  margin: 0;
+  padding-left: 18px;
+}

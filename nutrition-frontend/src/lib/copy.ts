@@ -59,8 +59,25 @@ export const COPY = {
   synced: (h: boolean) => pick(h, "Gespeichert", "Notiert. Die Waage weiß von nichts."),
   savedOffline: (h: boolean) => pick(h, "Offline gespeichert – wird synchronisiert", "Offline notiert. Der Server erfährt es später."),
   deleted: (h: boolean) => pick(h, "Eintrag entfernt", "Weg damit. Hat keiner gesehen."),
-  comingSoon: (h: boolean) => pick(h, "Kommt mit dem Scanner-Update", "Wird gerade trainiert. Kommt mit dem Scanner-Update."),
+  scanHint: (h: boolean) => pick(h, "Barcodes nacheinander vor die Kamera halten. Die Kamera bleibt offen.", "Einfach weiterscannen – die Kamera hat Ausdauer."),
+  scanLabel: (h: boolean) => pick(h, "Nährwerttabelle wird gelesen…", "Lese das Kleingedruckte. Mit Lupe."),
+  labelCheck: (h: boolean) => pick(h, "Gelb markierte Werte bitte prüfen.", "Gelb heißt: Da hat die Mathe gestutzt. Kurz drüberschauen."),
+  learned: (h: boolean) => pick(h, "Produkt gespeichert", "Gelernt. Nächstes Mal reicht der Barcode."),
+  voiceListening: (h: boolean) => pick(h, "Aufnahme läuft…", "Ich höre zu. Kauen bitte später."),
+  voiceThinking: (h: boolean) => pick(h, "Wird ausgewertet…", "Sortiere gerade Skyr von Banane…"),
+  importQueued: (h: boolean) => pick(h, "Rezept wird analysiert. Du kannst die App weiter nutzen.", "Läuft im Hintergrund. Die KI schnippelt, du scrollst."),
+  importReady: (h: boolean) => pick(h, "Rezeptentwurf bereit", "Entwurf ist fertig. Nährwerte kommen aus der Datenbank, nicht aus der Fantasie."),
+  importFailed: (h: boolean) => pick(h, "Das Rezept konnte nicht gelesen werden.", "Das Rezept hat sich gewehrt. Plan B unten."),
+  dropsEmpty: (h: boolean) => pick(h, "Diese Woche passt keine Idee mehr ins Restbudget.", "Heute ist der Tank fast voll – die Ideen warten auf morgen."),
+  dropsTitle: (h: boolean) => pick(h, "Ideen der Woche", "Weekly Drop · frisch aus der Protein-Küche"),
 };
+
+/** An AI or network failure as one readable line (the server's messages are already German). */
+export function failureText(e: unknown, humor: boolean): string {
+  if (e instanceof Error && e.name === "OfflineError") return pick(humor, "Offline – dafür braucht es eine Verbindung.", "Offline. Die KI wohnt leider im Internet.");
+  if (e instanceof Error && e.message && !/^HTTP \d+$/.test(e.message)) return e.message;
+  return pick(humor, "Das hat nicht geklappt. Bitte erneut versuchen.", "Hat geklemmt. Noch mal?");
+}
 
 /** 1–10 rating labels; with the humor mode off only the two ends are named. */
 export function ratingLabel(score: number, humor: boolean): string {

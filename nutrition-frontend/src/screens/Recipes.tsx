@@ -1,5 +1,5 @@
 import { useLiveQuery } from "dexie-react-hooks";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { calculateDraft, deleteRecipe, saveRecipe, splitRecipeOverDays, type DraftIngredient, type RecipeDraft } from "../lib/actions";
 import { apiJson } from "../lib/api";
 import { COPY, MEAL_LABELS } from "../lib/copy";
@@ -9,14 +9,28 @@ import { useApp } from "../lib/hooks";
 import { roundTo, type NutrientValues } from "../lib/nutrients";
 import { MEAL_TYPES, type FoodDto, type MealType, type RecipeDto } from "../lib/types";
 import { Sheet } from "../ui/Sheet";
+import { importApi, takeShare, type PendingShare, type RecipeImportDto } from "../lib/capture";
 import { FoodSheet } from "./FoodSheet";
+import { ImportReview, RecipeImportSheet } from "./RecipeImport";
+import { WeeklyDrops } from "./WeeklyDrops";
 
-type View = { mode: "list" } | { mode: "edit"; draft: RecipeDraft } | { mode: "prep"; recipe: RecipeDto };
+type View =
+  | { mode: "list" }
+  | { mode: "edit"; draft: RecipeDraft; importId?: string }
+  | { mode: "prep"; recipe: RecipeDto }
+  | { mode: "import"; share: PendingShare | null }
+  | { mode: "review"; dto: RecipeImportDto };
 
 export function Recipes({ today }: { today: string }) {
   const { toast, humor } = useApp();
   const recipes = useLiveQuery(() => db.recipes.orderBy("name").toArray(), []);
   const [view, setView] = useState<View>({ mode: "list" });
+
+  // A link shared into the app lands here (main.tsx keeps it and opens this tab).
+  useEffect(() => {
+    const share = takeShare();
+    if (share) setView({ mode: "import", share });
+  }, []);
 
   const edit = async (r: RecipeDto) => {
     // Editing needs the ingredient foods; they are cached once used, else fetched.
@@ -37,7 +51,8 @@ export function Recipes({ today }: { today: string }) {
     setView({ mode: "edit", draft: { id: r.id, name: r.name, note: r.note, servings: r.servings, finalWeightG: r.finalWeightG, ingredients } });
   };
 
-  if (view.mode === "edit") return <RecipeEditor initial={view.draft} onDone={() => setView({ mode: "list" })} />;
+  if (view.mode === "edit") return <RecipeEditor initial={view.draft} importId={view.importId} onDone={() => setView({ mode: "list" })} />;
+  if (view.mode === "review") return <ImportReview dto={view.dto} onCancel={() => setView({ mode: "list" })} onContinue={(draft) => setView({ mode: "edit", draft, importId: view.dto.id })} />;
 
   return (
     <div className="screen" data-testid="screen-recipes">
@@ -47,6 +62,9 @@ export function Recipes({ today }: { today: string }) {
           + Neues Rezept
         </button>
       </div>
+      <button type="button" className="ghost wide" onClick={() => setView({ mode: "import", share: null })} data-testid="open-import">
+        ⇣ Importieren: Link, Foto, Video oder Text
+      </button>
       {recipes && recipes.length === 0 && <p className="muted">{COPY.emptyRecipes(humor)}</p>}
       <ul className="list">
         {(recipes ?? []).map((r) => (
@@ -80,6 +98,8 @@ export function Recipes({ today }: { today: string }) {
           </li>
         ))}
       </ul>
+      <WeeklyDrops today={today} />
+      {view.mode === "import" && <RecipeImportSheet share={view.share} onReview={(dto) => setView({ mode: "review", dto })} onClose={() => setView({ mode: "list" })} />}
       {view.mode === "prep" && <MealPrepSheet recipe={view.recipe} today={today} onClose={() => setView({ mode: "list" })} />}
     </div>
   );
@@ -124,7 +144,7 @@ function Macros({ n, label }: { n: NutrientValues | null; label: string }) {
   );
 }
 
-function RecipeEditor({ initial, onDone }: { initial: RecipeDraft; onDone: () => void }) {
+function RecipeEditor({ initial, importId, onDone }: { initial: RecipeDraft; importId?: string; onDone: () => void }) {
   const { toast } = useApp();
   const [draft, setDraft] = useState<RecipeDraft>(initial);
   const [adding, setAdding] = useState(false);
@@ -143,6 +163,8 @@ function RecipeEditor({ initial, onDone }: { initial: RecipeDraft; onDone: () =>
     if (draft.ingredients.length === 0) return setError("Mindestens eine Zutat.");
     if (calc instanceof Error) return setError(calc.message);
     await saveRecipe(draft);
+    // The import's draft has served its purpose once the recipe exists.
+    if (importId) void importApi.remove(importId).catch(() => undefined);
     toast("Rezept gespeichert");
     onDone();
   };

@@ -21,6 +21,7 @@ export default defineConfig({
         description: "Ernährung loggen – Zielwerte kommen aus dem Fitnesstracker.",
         lang: "de",
         start_url: "/",
+        share_target: { action: "/share-target", method: "GET", params: { title: "title", text: "text", url: "url" } },
         scope: "/",
         display: "standalone",
         orientation: "portrait",

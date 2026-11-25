@@ -5,6 +5,7 @@ export interface WorkerConfig {
   tmpTtlMs: number;
   cleanupEveryMs: number;
   heartbeatFile: string;
+  aiConcurrency: number;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): WorkerConfig {
@@ -14,11 +15,14 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): WorkerConfig {
   if (!Number.isFinite(ttlHours) || ttlHours <= 0) throw new Error("MEDIA_TMP_TTL_HOURS must be a positive number");
   const everyMinutes = Number(env.CLEANUP_EVERY_MINUTES ?? 60);
   if (!Number.isFinite(everyMinutes) || everyMinutes < 1) throw new Error("CLEANUP_EVERY_MINUTES must be at least 1");
+  const aiConcurrency = Number(env.AI_CONCURRENCY ?? 2);
+  if (!Number.isInteger(aiConcurrency) || aiConcurrency < 1 || aiConcurrency > 10) throw new Error("AI_CONCURRENCY must be an integer from 1 to 10");
   return {
     redisUrl,
     mediaDir: env.MEDIA_DIR ?? "/data/media",
     tmpTtlMs: ttlHours * 60 * 60 * 1000,
     cleanupEveryMs: everyMinutes * 60 * 1000,
     heartbeatFile: env.HEARTBEAT_FILE ?? "/tmp/worker-heartbeat",
+    aiConcurrency,
   };
 }
