@@ -2,16 +2,9 @@
 // weekly drops in the mobile viewport against kcal.pwa-tree.de. Test account only (from
 // /secrets/.env.claude.local). Output allowlist: step names, counts, booleans, status codes.
 // Never credentials, cookies, tokens or response bodies. Everything logged is undone again.
-import { readFileSync } from "node:fs";
 import { chromium } from "playwright";
+import { KCAL, OUT, env, scrub } from "./env.mjs";
 
-const env = {};
-for (const line of readFileSync("/secrets/.env.claude.local", "utf8").split("\n")) {
-  const m = line.match(/^\s*([A-Z_]+)\s*[:=]\s*(.*?)\s*$/);
-  if (m) env[m[1]] = m[2].replace(/^["']|["']$/g, "");
-}
-const KCAL = "https://kcal.pwa-tree.de";
-const scrub = (s) => String(s).replace(/[A-Za-z0-9_.-]{28,}/g, "<redacted>").replaceAll(env.TEST_PWA_EMAIL, "<email>").slice(0, 160);
 const KNOWN_EAN = "3017620422003"; // a widely listed product in Open Food Facts
 // A random in-store code (prefix 29) per run: valid check digit, practically never in a public database.
 const ean13 = (body12) => body12 + ((10 - ([...body12].reduce((s, d, i) => s + Number(d) * (i % 2 ? 3 : 1), 0) % 10)) % 10);
@@ -103,10 +96,10 @@ try {
   await page.waitForTimeout(800);
   check("Doppelter Scan erzeugt keine zweite Zeile", (await learnBtn.count()) === 1, await learnBtn.count());
   check("Scanner: kein horizontaler Overflow", !(await overflow()));
-  await page.screenshot({ path: "/out/r04-scanner.png" });
+  await page.screenshot({ path: `${OUT}/r04-scanner.png` });
   await learnBtn.click();
   check("Scan & Learn öffnet mit Fotofeld", await ok(page.getByTestId("label-photo").waitFor({ state: "attached", timeout: 5000 })));
-  await page.screenshot({ path: "/out/r04-scanlearn.png" });
+  await page.screenshot({ path: `${OUT}/r04-scanlearn.png` });
   await closeSheet(); // back to the scanner, list kept
   const listKept = await ok(page.getByTestId("log-all").waitFor({ timeout: 5000 }));
   check("Liste bleibt nach Scan & Learn erhalten", listKept);
@@ -135,7 +128,7 @@ try {
     const text = (await voiceError.textContent()) ?? "";
     check("Sprache ohne KI: verständliche Meldung", /Gemini|KI|Budget|Kontingent/i.test(text) && !/HTTP \d/.test(text), scrub(text).slice(0, 90));
   }
-  await page.screenshot({ path: "/out/r04-voice.png" });
+  await page.screenshot({ path: `${OUT}/r04-voice.png` });
   await closeSheet();
 
   // ── Recipes: weekly drops, link import preview, share target ──
@@ -147,7 +140,7 @@ try {
   if (dropCount > 0) {
     await drops.locator("li.drop").first().locator(".list-row").click();
     check("Drop aufklappbar (Zutaten)", (await drops.locator(".drop-body li").count()) > 0);
-    await page.screenshot({ path: "/out/r04-drops.png", fullPage: true });
+    await page.screenshot({ path: `${OUT}/r04-drops.png`, fullPage: true });
     await drops.getByTestId("drop-log").first().click();
     check("Drop 1-Tap eintragen mit Rückgängig", await undoToast());
   }
@@ -159,7 +152,7 @@ try {
   check("Link-Import legt Vorschau-Job an", await ok(status.waitFor({ timeout: 10000 })));
   const settled = await ok(page.waitForFunction(() => /Vorschau bereit|Fehlgeschlagen|Entwurf bereit/.test(document.querySelector('[data-testid="import-status"]')?.textContent ?? ""), null, { timeout: 30000 }));
   check("Vorschau kostenlos (ohne Analyse) fertig", settled && (await page.getByTestId("import-confirm").count()) + (await status.locator(".danger").count()) > 0);
-  await page.screenshot({ path: "/out/r04-import.png" });
+  await page.screenshot({ path: `${OUT}/r04-import.png` });
   await page.getByTestId("import-discard").click();
   await page.waitForTimeout(800);
   await closeSheet();

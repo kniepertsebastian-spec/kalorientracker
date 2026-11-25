@@ -1,5 +1,5 @@
 /** Status copy: plain when the humor mode is off, dry when it is on (CLAUDE.md, "Copy"). */
-export function greeting(name: string | null, hour: number, humor: boolean): string {
+export function greeting(name: string | null, hour: number, humor: boolean, phase: "CUT" | "MAINTAIN" | "BULK" | null = null): string {
   const who = name ? `, ${name}` : "";
   if (!humor) {
     if (hour < 11) return `Guten Morgen${who}.`;
@@ -7,6 +7,17 @@ export function greeting(name: string | null, hour: number, humor: boolean): str
     return `Guten Abend${who}.`;
   }
   if (hour < 5) return `Noch wach${who}? Der Kühlschrank zählt mit.`;
+  // The phase from the Fitnesstracker colours the line (the glow does the same for the page).
+  if (phase === "CUT") {
+    if (hour < 11) return `Guten Morgen${who}. Das Defizit hat schon Kaffee getrunken.`;
+    if (hour < 18) return `Hallo${who}. Cut läuft – der Hunger ist nur ein Gerücht.`;
+    return `Guten Abend${who}. Abends wird der Cut gewonnen. Oder verhandelt.`;
+  }
+  if (phase === "BULK") {
+    if (hour < 11) return `Guten Morgen${who}. Die Muskeln fragen nach Frühstück.`;
+    if (hour < 18) return `Hallo${who}. Aufbau heißt: Essen ist heute Pflichttermin.`;
+    return `Guten Abend${who}. Noch Platz im Überschuss? Gut so.`;
+  }
   if (hour < 11) return `Guten Morgen${who}. Frühstück ist auch nur eine Zahl.`;
   if (hour < 18) return `Hallo${who}. Die Waage hat heute frei, wir nicht.`;
   return `Guten Abend${who}. Snacks werden hier nicht verurteilt – nur gezählt.`;
@@ -33,6 +44,23 @@ export function phaseLine(phase: "CUT" | "MAINTAIN" | "BULK" | null, humor: bool
   return pick(humor, "Kein Profil im Fitnesstracker", "Ohne Profil im Fitnesstracker raten wir nicht – versprochen.");
 }
 
+const TRAINING_PHASES: Record<string, string> = { AUFBAU: "Aufbau", MUSKELAUSDAUER: "Muskelausdauer", NEGATIV: "Negativ", DAILY: "Daily" };
+
+/** The Fitnesstracker's training block, e.g. "Training: Muskelausdauer"; custom blocks stay generic. */
+export function trainingLine(phase: string | null, paused: boolean | null | undefined): string | null {
+  if (!phase) return null;
+  if (paused) return "Training pausiert";
+  return `Training: ${TRAINING_PHASES[phase] ?? "eigener Block"}`;
+}
+
+/** How to read a weight change next to body water (Fortschritt). Only says "Wasser" when the
+ *  measured water share moved in the same direction as the weight. */
+export function waterContext(weightChangeKg: number, waterChangePoints: number, humor: boolean): string {
+  const sameWay = Math.abs(weightChangeKg) >= 0.3 && Math.abs(waterChangePoints) >= 0.5 && Math.sign(weightChangeKg) === Math.sign(waterChangePoints);
+  if (sameWay) return pick(humor, "Gewicht und Wasseranteil haben sich gleich bewegt – vermutlich vor allem Wasser.", "Gewicht und Wasser im Gleichschritt – das ist eher Pfütze als Plätzchen.");
+  return pick(humor, "Einzelne Tage schwanken durch Wasser und Mageninhalt; aussagekräftig ist der Wochenschnitt.", "Die Waage hat Tagesform. Der Wochenschnitt nicht.");
+}
+
 export interface BudgetState {
   remainingKcal: number;
   remainingProteinG: number | null;
@@ -51,6 +79,7 @@ export function budgetLine(s: BudgetState, humor: boolean): string {
 }
 
 export const COPY = {
+  duplicate: (h: boolean) => pick(h, "Gleicher Eintrag gerade schon gespeichert – doppelt?", "Déjà-vu: Das stand vor einem Moment schon da. Doppelt gemeint?"),
   quickAdd: (h: boolean) => pick(h, "Schnelleingabe ohne Produkt", "Pi-mal-Daumen / Auswärts-Schätzung"),
   emptyRecipes: (h: boolean) => pick(h, "Noch keine Rezepte. Zutaten roh wiegen, fertiges Gericht wiegen, speichern.", "Noch keine Rezepte. Roh wiegen, kochen, nochmal wiegen – die Mathe machen wir."),
   scanUnknown: (h: boolean) => pick(h, "Produkt nicht gefunden", "Kenn ich noch nicht – zeig mal die Rückseite."),

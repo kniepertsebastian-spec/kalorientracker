@@ -38,3 +38,28 @@ describe("micro-copy", () => {
     expect(ratingLabel(6, false)).toBe("6 von 10");
   });
 });
+
+import { trainingLine, waterContext } from "./copy";
+
+describe("phase-driven copy (Fitnesstracker)", () => {
+  it("colours the humorous greeting by phase, and leaves the plain one alone", () => {
+    expect(greeting("Basti", 9, true, "CUT")).toMatch(/Defizit/);
+    expect(greeting("Basti", 14, true, "BULK")).toMatch(/Aufbau/);
+    expect(greeting("Basti", 9, false, "CUT")).toBe("Guten Morgen, Basti.");
+    expect(greeting(null, 3, true, "CUT")).toMatch(/^Noch wach\?/);
+  });
+
+  it("names the training block, paused or custom", () => {
+    expect(trainingLine("MUSKELAUSDAUER", false)).toBe("Training: Muskelausdauer");
+    expect(trainingLine("CUSTOM_2", false)).toBe("Training: eigener Block");
+    expect(trainingLine("AUFBAU", true)).toBe("Training pausiert");
+    expect(trainingLine(null, null)).toBeNull();
+  });
+
+  it("calls a weight change water only when the water share moved the same way", () => {
+    expect(waterContext(1.1, 1.2, false)).toMatch(/vermutlich vor allem Wasser/);
+    expect(waterContext(-0.8, -0.7, false)).toMatch(/Wasser/);
+    expect(waterContext(1.1, -0.6, false)).toMatch(/Wochenschnitt/);
+    expect(waterContext(0.1, 1.5, false)).toMatch(/Wochenschnitt/);
+  });
+});

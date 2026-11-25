@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 5 * * *" # live E2E once a day against production
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: Frontend + Worker (tsc, Vitest, Build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            nutrition-frontend/package-lock.json
+            worker/package-lock.json
+      - name: nutrition-frontend
+        working-directory: nutrition-frontend
+        run: |
+          npm ci
+          npx tsc -b
+          npx vitest run
+          npx vite build
+      - name: worker
+        working-directory: worker
+        run: |
+          npm ci
+          npx tsc --noEmit
+          npx vitest run
+
+  e2e-live:
+    name: Live-E2E (Test-Account, kcal.pwa-tree.de)
+    needs: build-test
+    # Only on main, by hand or on schedule: PRs are not deployed, so a live run would test the old build.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    # One live run at a time: the suites write to (and clean up) the same test account.
+    concurrency:
+      group: e2e-live
+      cancel-in-progress: false
+    env:
+      TEST_PWA_EMAIL: ${{ secrets.TEST_PWA_EMAIL }}
+      TEST_PWA_PASSWORD: ${{ secrets.TEST_PWA_PASSWORD }}
+      E2E_OUT: ${{ github.workspace }}/e2e/out
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test-Account konfiguriert?
+        id: secrets
+        run: |
+          if [ -n "$TEST_PWA_EMAIL" ] && [ -n "$TEST_PWA_PASSWORD" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"; else
+            echo "::notice::Secrets TEST_PWA_EMAIL / TEST_PWA_PASSWORD fehlen – Live-E2E übersprungen."; echo "ok=false" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/setup-node@v4
+        if: steps.secrets.outputs.ok == 'true'
+        with:
+          node-version: 22
+      - name: Playwright
+        if: steps.secrets.outputs.ok == 'true'
+        working-directory: e2e
+        run: |
+          npm i --no-save --no-audit --no-fund playwright@1.62.1
+          npx playwright install --with-deps chromium webkit
+      - name: SSO (Roadmap 01)
+        if: steps.secrets.outputs.ok == 'true'
+        working-directory: e2e
+        run: node sso-acceptance.mjs
+      - name: Offline-Tag + Delta-Sync + Bewertung (Roadmap 03)
+        if: success() && steps.secrets.outputs.ok == 'true'
+        working-directory: e2e
+        run: node offline-day.mjs
+      - name: Erfassung, Barcode → Scan & Learn (Roadmap 04)
+        if: success() && steps.secrets.outputs.ok == 'true'
+        working-directory: e2e
+        run: node capture.mjs
+      - name: Rezept-Endgewicht, Snapshots, Export 7/14/31/90 (Roadmap 05)
+        if: success() && steps.secrets.outputs.ok == 'true'
+        working-directory: e2e
+        run: node recipes-export.mjs
+      - name: WebKit/iPhone + 320 px (Roadmap 05)
+        if: success() && steps.secrets.outputs.ok == 'true'
+        working-directory: e2e
+        run: node mobile.mjs
+      - name: Screenshots
+        if: always() && steps.secrets.outputs.ok == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-screenshots
+          path: e2e/out/
+          retention-days: 7

@@ -1,16 +1,8 @@
 // SSO acceptance (Roadmap 01) against the live PWAs with the test account only.
 // Output allowlist: paths, status codes, booleans, counts. Never credentials, cookies, tokens or bodies.
-import { readFileSync } from "node:fs";
 import { chromium } from "playwright";
+import { FITNESS, KCAL, OUT, env, scrub } from "./env.mjs";
 
-const env = {};
-for (const line of readFileSync("/secrets/.env.claude.local", "utf8").split("\n")) {
-  const m = line.match(/^\s*([A-Z_]+)\s*[:=]\s*(.*?)\s*$/);
-  if (m) env[m[1]] = m[2].replace(/^["']|["']$/g, "");
-}
-const FITNESS = "https://fitness.pwa-tree.de";
-const KCAL = "https://kcal.pwa-tree.de";
-const scrub = (s) => String(s).replace(/[A-Za-z0-9_.-]{28,}/g, "<redacted>").replaceAll(env.TEST_PWA_EMAIL, "<email>").slice(0, 200);
 
 const browser = await chromium.launch();
 const context = await browser.newContext({
@@ -49,12 +41,14 @@ check("Refresh-Cookie für pwa-tree.de (HttpOnly, Secure)", domainCookie);
 // 2. Kalorientracker without a second login
 authCalls.length = 0;
 await page.goto(KCAL, { waitUntil: "networkidle" });
-const logoutBtn = page.getByRole("button", { name: "Abmelden" });
-const loggedIn = await logoutBtn.waitFor({ timeout: 15000 }).then(() => true, () => false);
+// Since Roadmap 03 the app opens on "Heute"; logout lives under "Mehr" and ends both sessions.
+const today = page.getByTestId("screen-today");
+const logoutBtn = page.getByRole("button", { name: /^Abmelden/ });
+const loggedIn = await today.waitFor({ timeout: 15000 }).then(() => true, () => false);
 check("Kalorientracker ohne zweite Anmeldung", loggedIn);
 check("Kein Login-Formular sichtbar", (await page.locator('input[type="password"]').count()) === 0);
 check("Keine 401/403-Schleife", authCalls.length <= 2 && !authCalls.some((c) => / 40[13]$/.test(c)), authCalls.join(", "));
-await page.screenshot({ path: "/out/kcal-home-390.png", fullPage: true });
+await page.screenshot({ path: `${OUT}/kcal-home-390.png`, fullPage: true });
 
 // 3. Layout
 const layout = await page.evaluate(() => {
@@ -84,9 +78,10 @@ check("Service Worker aktiv", pwa.sw);
 
 // 5. Reload keeps the session
 await page.reload({ waitUntil: "networkidle" });
-check("Session übersteht Reload", await logoutBtn.waitFor({ timeout: 15000 }).then(() => true, () => false));
+check("Session übersteht Reload", await today.waitFor({ timeout: 15000 }).then(() => true, () => false));
 
 // 6. Logout in the Kalorientracker ends the Fitnesstracker session too
+await page.getByRole("link", { name: "Mehr", exact: true }).click();
 await logoutBtn.click();
 const loginShown = await page.locator('input[type="password"]').waitFor({ timeout: 15000 }).then(() => true, () => false);
 check("Logout im Kalorientracker zeigt Login", loginShown);

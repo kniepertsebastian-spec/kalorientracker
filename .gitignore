@@ -13,3 +13,4 @@ playwright-report/
 .claude/settings.local.json
 .DS_Store
 e2e/out/
+android/out/

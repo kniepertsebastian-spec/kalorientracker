@@ -1,12 +1,12 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useMemo, useState } from "react";
-import { logEntry, toggleFavorite } from "../lib/actions";
+import { deleteEntry, logEntryChecked, toggleFavorite } from "../lib/actions";
 import { apiJson, OfflineError } from "../lib/api";
 import { COPY, MEAL_LABELS } from "../lib/copy";
 import { db, searchKey } from "../lib/db";
 import { formatNumber, fractionButtons, snapshotFromFood, snapshotFromRecipe, type Budget } from "../lib/day";
 import { useApp } from "../lib/hooks";
-import { MEAL_TYPES, type EntrySnapshot, type FoodDto, type MealType, type RecipeDto } from "../lib/types";
+import { MEAL_TYPES, type EntrySnapshot, type FoodDto, type MealEntryDto, type MealType, type RecipeDto } from "../lib/types";
 import { Sheet } from "../ui/Sheet";
 
 type Picked = { type: "food"; food: FoodDto } | { type: "recipe"; recipe: RecipeDto };
@@ -86,8 +86,10 @@ export function FoodSheet({ title = "Lebensmittel suchen", date, initialMealType
           budget={budget}
           onPick={onPick}
           onBack={() => setPicked(null)}
-          onDone={() => {
-            toast(navigator.onLine ? COPY.synced(humor) : COPY.savedOffline(humor));
+          onDone={(duplicate) => {
+            // A quick repeat of the same item: say so and offer to take the new entry back.
+            if (duplicate) toast(COPY.duplicate(humor), { label: "Rückgängig", run: () => void deleteEntry(duplicate) });
+            else toast(navigator.onLine ? COPY.synced(humor) : COPY.savedOffline(humor));
             onClose();
           }}
         />
@@ -193,7 +195,8 @@ function AmountStep({
   budget?: Budget | null;
   onPick?: Props["onPick"];
   onBack: () => void;
-  onDone: () => void;
+  /** With the new entry when it repeats one logged moments ago. */
+  onDone: (duplicate?: MealEntryDto) => void;
 }) {
   const units = picked.type === "food" ? unitsFor(picked.food) : [...(picked.recipe.servings ? ["Portion"] : []), "g"];
   // Smart default: the amount used last time for this food.
@@ -220,7 +223,10 @@ function AmountStep({
     setBusy(true);
     try {
       if (onPick && picked.type === "food") onPick(picked.food, qty, unit);
-      else await logEntry({ date: date!, mealType, source: picked, quantity: qty, unitLabel: unit });
+      else {
+        const { entry, duplicate } = await logEntryChecked({ date: date!, mealType, source: picked, quantity: qty, unitLabel: unit });
+        if (duplicate) return onDone(entry);
+      }
       onDone();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Konnte nicht gespeichert werden.");

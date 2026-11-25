@@ -7,11 +7,32 @@
 | `ROADMAP-02-BACKEND-DATA` | Prisma-Schema, BLS 4.0, API-Kern, Export | Abgeschlossen | 2026-11-25 16:08 |
 | `ROADMAP-03-FRONTEND-PWA` | Design-System, Offline-Sync, Logging-UI | Abgeschlossen | 2026-11-25 16:57 |
 | `ROADMAP-04-AI-CAPTURE` | Barcode, Scan & Learn, Sprache, KI-Rezeptimport | Abgeschlossen (KI-Live-Abnahme offen) | 2026-11-25 20:35 |
-| `ROADMAP-05-INTEGRATION-QA` | Fitness-Sync, E2E-Tests, iOS-Feinschliff | Offen | – |
+| `ROADMAP-05-INTEGRATION-QA` | Fitness-Sync, E2E-Tests, iOS-Feinschliff | Abgeschlossen (Echtgerät-Abnahme offen) | 2026-11-25 21:47 |
 
 ---
 
 <!-- Neue Einträge immer direkt HIER unter dieser Linie einfügen (neuester Timestamp zuerst) -->
+
+## [2026-11-25 21:47 CET] – ROADMAP-05: Fitness-Integration, E2E-Suite, Mobile-Abnahme, Feinschliff
+- **Roadmap-Status:** Abgeschlossen (Echtgerät-Abnahme offen)
+- **Abgeschlossene Roadmaps bisher:** ROADMAP-01, ROADMAP-02, ROADMAP-03, ROADMAP-04, ROADMAP-05
+- **Was wurde umgesetzt:**
+  - Fitnesstracker-Repo, Branch `feature/nutrition-05-integration`, PR #118 (gestapelt auf #117): `GET /api/nutrition/body-trend?days=7..90` (`backend/src/modules/nutritionTargets/bodyTrend.ts`, ein Punkt pro lokalem Tag, 7-Tage-Mittel gegen Vorwoche, Wasseranteil-Kontext, fehlende Werte bleiben `null`), 6 Unit-Tests und ein Integrationstest. Gemini-Fallback aller KI-Module auf `gemini-3.5-flash-lite`, Hinweise in `GeminiKeyHelp.tsx` angepasst. Backend 71 Dateien / 525 Tests grün, `prisma validate` ok, keine Migration.
+  - Doppelzählung geprüft: Zielkalorien und Zielprotein kommen allein aus `calculateNutrition` im Fitnesstracker; der Kalorientracker addiert keine Aktivitätskalorien.
+  - Kalorien-PWA: Körpertrend wird alle 10 min geholt und in Dexie gecacht (`lib/sync.ts`, `useBodyTrend`); Begrüßung und Trainingszeile richten sich nach der Phase (`lib/copy.ts`, `App.tsx`); `screens/Progress.tsx` mit 7-Tage-Makrobilanz, Gewichtstrend-Sparkline und Einordnung „Wasser oder Gewebe?“; Dubletten-Hinweis mit „Rückgängig“ bei gleichem Eintrag innerhalb von 2 min (`lib/actions.ts`, `FoodSheet.tsx`, `Today.tsx`); Maskottchen-Zustände default/Sonnenbrille/drüber/müde; Legacy-Badge in „Mehr“ (max. 40 Zeichen); Lazy-Loading für Scanner, Scan & Learn, Sprache, Rezepte, Fortschritt, Export und Mehr. 7 Dateien / 56 Vitest-Tests grün, Worker 82 Tests grün.
+  - E2E-Suite (`e2e/`, Start mit `e2e/run.sh <skript>` oder `e2e/run-all.sh`, gemeinsame Umgebung in `e2e/env.mjs`): `sso-acceptance.mjs` 14/14, `offline-day.mjs` (Offline-Kaltstart, Offline-Logging, Delta-Sync, 1–10-Bewertung), `capture.mjs` (Barcode → Scan & Learn), neu `recipes-export.mjs` 25/25 (Rezept 400 g roh → 300 g Endgewicht, Snapshot bleibt nach Rezeptänderung gleich, auch auf zweitem Gerät und im Export; Export 7/14/31/90 Tage, PDF/CSV/MD/JSON) und `mobile.mjs` 28/28 (WebKit/iPhone 13 und 320 px). Alle grün gegen Produktion mit dem Test-Account, Testdaten aufgeräumt.
+  - Dabei gefunden und behoben: Schnelleingabe-Sheet bei 320 px 33 px zu breit (Grid jetzt `minmax(0, 1fr)`), Fitnesstracker-Link im Fortschritt nur 17 px hoch (jetzt 44-px-Ziel).
+  - CI: `.github/workflows/ci.yml` mit Job `build-test` (Frontend und Worker: tsc, Vitest, Build) und `e2e-live` (nur main, manuell und täglich; wird übersprungen, solange die Secrets `TEST_PWA_EMAIL`/`TEST_PWA_PASSWORD` fehlen; Screenshots als Artefakt).
+  - `docs/MOBILE-ACCEPTANCE.md`: automatische Prüfungen und Checkliste für echte Geräte. `android/`: TWA-Gerüst analog zum Fitnesstracker (`de.pwatree.kcal`, Schlüssel außerhalb des Repos in `~/.kalorientracker-android`).
+  - Deploy: `backend` aus `~/ft-nutrition-05` und `nutrition-frontend`; DB-Backup `20261125T202833Z` vorher.
+- **Stehengeblieben bei / Offene Punkte:**
+  - Echtgerät-Abnahme (Home-Screen-Installation iOS, Kamera und Mikrofon auf iPhone und Android) laut `docs/MOBILE-ACCEPTANCE.md`.
+  - GitHub-Secrets `TEST_PWA_EMAIL`/`TEST_PWA_PASSWORD` im Kalorientracker-Repo anlegen, sonst läuft nur der Job `build-test`.
+  - PRs #115, #116, #117, #118 mergen, danach Deploy aus `~/fitnesstracker` (erst dann ist `GeminiKeyHelp` live) und Worktrees `~/ft-nutrition-0*` entfernen.
+  - Test-Account ohne Fitnesstracker-Profil und ohne Gemini-Schlüssel: Zielwerte, Gewichtstrend und KI-Pfade live nur als Empty State bzw. per Unit-/Integrationstest geprüft.
+  - TWA-APK optional: `android/build.sh`, danach `assetlinks.json` hinterlegen.
+- **Nächster konkreter Schritt:**
+  - PRs #115–#118 mergen und aus `~/fitnesstracker` deployen, dann `e2e/run-all.sh` auf dem Server laufen lassen und die Echtgerät-Checkliste in `docs/MOBILE-ACCEPTANCE.md` abarbeiten.
 
 ## [2026-11-25 20:35 CET] – ROADMAP-04: Scanner, Scan & Learn, Sprache, Rezeptimport, Wochen-Drops live
 - **Roadmap-Status:** Abgeschlossen (Live-Abnahme der KI-Pfade offen)

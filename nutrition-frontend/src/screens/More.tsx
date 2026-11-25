@@ -42,7 +42,7 @@ export function More({
         </label>
         <label>
           Badge auf der Heute-Karte
-          <input value={badge} maxLength={24} placeholder="leer = kein Badge" onChange={(e) => onBadge(e.target.value)} />
+          <input value={badge} maxLength={40} placeholder="leer = kein Badge" onChange={(e) => onBadge(e.target.value)} />
         </label>
       </section>
 

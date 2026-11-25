@@ -1,6 +1,6 @@
 import { useLiveQuery } from "dexie-react-hooks";
-import { useEffect, useState } from "react";
-import { clearRating, copyDay, deleteEntry, relogEntry, setRating, undoDeleteEntry } from "../lib/actions";
+import { lazy, Suspense, useEffect, useState } from "react";
+import { clearRating, copyDay, deleteEntry, quickDuplicateOf, relogEntry, setRating, undoDeleteEntry } from "../lib/actions";
 import { budgetLine, COPY, MEAL_LABELS, ratingLabel } from "../lib/copy";
 import { db } from "../lib/db";
 import { addDays, budget as computeBudget, dayTotals, formatNumber, frequentEntries, mealTypeForHour, type Budget } from "../lib/day";
@@ -9,9 +9,11 @@ import { MEAL_TYPES, type FoodDto, type MealType } from "../lib/types";
 import { SwipeRow } from "../ui/SwipeRow";
 import { FoodSheet } from "./FoodSheet";
 import { QuickAddSheet } from "./QuickSheets";
-import { ScanLearnSheet } from "./ScanLearn";
-import { ScanFlow } from "./Scanner";
-import { VoiceSheet } from "./Voice";
+
+// Capture flows load on first use (camera, audio, zxing): the Today screen itself stays light.
+const ScanLearnSheet = lazy(() => import("./ScanLearn").then((m) => ({ default: m.ScanLearnSheet })));
+const ScanFlow = lazy(() => import("./Scanner").then((m) => ({ default: m.ScanFlow })));
+const VoiceSheet = lazy(() => import("./Voice").then((m) => ({ default: m.VoiceSheet })));
 
 type Open = null | { kind: "search"; food?: FoodDto } | { kind: "quick" } | { kind: "barcode" } | { kind: "photo" } | { kind: "voice" };
 
@@ -66,7 +68,11 @@ export function Today({ today }: { today: string }) {
                 type="button"
                 className="chip"
                 data-testid="time-chip"
-                onClick={() => void relogEntry(c.entry, today, slot).then(() => toast(`${c.name} eingetragen`))}
+                onClick={() =>
+                  void relogEntry(c.entry, today, slot).then(async (e) =>
+                    (await quickDuplicateOf({ ...e, date: today })) ? toast(COPY.duplicate(humor), { label: "Rückgängig", run: () => void deleteEntry(e) }) : toast(`${c.name} eingetragen`),
+                  )
+                }
               >
                 + {c.name} <span className="num">{formatNumber(c.quantity, c.quantity % 1 ? 1 : 0)} {c.unitLabel}</span>
               </button>
@@ -123,9 +129,11 @@ export function Today({ today }: { today: string }) {
 
       {open?.kind === "search" && <FoodSheet date={today} initialMealType={slot} budget={b} initialFood={open.food ?? null} onClose={() => setOpen(null)} />}
       {open?.kind === "quick" && <QuickAddSheet date={today} initialMealType={slot} budget={b} onClose={() => setOpen(null)} />}
+      <Suspense fallback={null}>
       {open?.kind === "barcode" && <ScanFlow date={today} initialMealType={slot} onClose={() => setOpen(null)} />}
       {open?.kind === "photo" && <ScanLearnSheet date={today} initialMealType={slot} onClose={() => setOpen(null)} />}
       {open?.kind === "voice" && <VoiceSheet date={today} initialMealType={slot} onClose={() => setOpen(null)} />}
+      </Suspense>
     </div>
   );
 }

@@ -83,6 +83,33 @@ export async function logEntry(input: LogInput): Promise<MealEntryDto> {
   return entry;
 }
 
+// ─── Duplicate detection ────────────────────────────────────────────────────────────────────────
+// A double tap, or the same item logged from two places within a minute or two, is almost always a
+// mistake. Nothing is blocked (two portions are real too): the entry is logged and the toast
+// offers to take the new one back.
+
+export const DUPLICATE_WINDOW_MS = 2 * 60_000;
+
+type DupFields = Pick<MealEntryDto, "id" | "name" | "foodId" | "recipeId" | "quantity" | "unitLabel" | "createdAt">;
+
+export function isQuickDuplicate(a: DupFields, b: DupFields, windowMs = DUPLICATE_WINDOW_MS): boolean {
+  if (a.id === b.id || !a.createdAt || !b.createdAt) return false;
+  const sameThing = a.foodId || b.foodId ? a.foodId === b.foodId : a.recipeId || b.recipeId ? a.recipeId === b.recipeId : a.name.trim().toLowerCase() === b.name.trim().toLowerCase();
+  return sameThing && a.quantity === b.quantity && a.unitLabel === b.unitLabel && Math.abs(Date.parse(a.createdAt) - Date.parse(b.createdAt)) <= windowMs;
+}
+
+/** An entry of the same day that the new one looks like a quick repeat of, or null. */
+export async function quickDuplicateOf(entry: MealEntryDto & { date: string }): Promise<MealEntryDto | null> {
+  const sameDay = await db.mealEntries.where("date").equals(entry.date).toArray();
+  return sameDay.find((e) => isQuickDuplicate(e, entry)) ?? null;
+}
+
+/** logEntry, plus whether the same thing was just logged a moment ago. */
+export async function logEntryChecked(input: LogInput): Promise<{ entry: MealEntryDto & { date: string }; duplicate: boolean }> {
+  const entry = (await logEntry(input)) as MealEntryDto & { date: string };
+  return { entry, duplicate: (await quickDuplicateOf(entry)) !== null };
+}
+
 /** Logs an earlier entry again: recomputed from the food or recipe if known here, else its snapshot copied. */
 export async function relogEntry(entry: MealEntryDto, date: string, mealType: MealType): Promise<MealEntryDto> {
   const food = entry.foodId ? await db.foods.get(entry.foodId) : undefined;

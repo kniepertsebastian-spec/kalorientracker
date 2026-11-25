@@ -107,11 +107,34 @@ export interface TodayTargets {
   date: string;
   timeZone: string;
   profileComplete: boolean;
+  /** Grundumsatz and Gesamtumsatz as the Fitnesstracker calculates them (never recalculated here). */
+  bmr?: number | null;
+  tdee?: number | null;
   targetCalories: number | null;
   targetProteinG: number | null;
   macros: MacroSplit | null;
   nutritionPhase: NutritionPhase | null;
   trainingPhase: string | null;
+  trainingPaused?: boolean | null;
+}
+
+export interface BodyTrendPoint {
+  date: string;
+  weightKg: number;
+  bodyWaterPercent: number | null;
+  bodyFatPercent: number | null;
+}
+
+/** Weight and body water from the Fitnesstracker's measurements (GET /nutrition/body-trend). */
+export interface BodyTrend {
+  date: string;
+  days: number;
+  points: BodyTrendPoint[];
+  latest: BodyTrendPoint | null;
+  avg7Kg: number | null;
+  avgPrev7Kg: number | null;
+  weeklyChangeKg: number | null;
+  water: { date: string; previousDate: string; weightChangeKg: number; waterChangePercentPoints: number } | null;
 }
 
 // ─── Request bodies ─────────────────────────────────────────────────────────────────────────────

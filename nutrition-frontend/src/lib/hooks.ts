@@ -2,7 +2,10 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { createContext, useContext, useEffect, useState } from "react";
 import { db } from "./db";
 import { localDayKey } from "./day";
-import type { MealEntryDto, MealType, RatingDto, TodayTargets } from "./types";
+import type { BodyTrend, MealEntryDto, MealType, RatingDto, TodayTargets } from "./types";
+
+/** The legacy badge on the Today card; editable (or empty) under "Mehr". */
+export const DEFAULT_BADGE = "Kapitel 2 · -105 kg im Rückspiegel";
 
 export interface AppCtx {
   humor: boolean;
@@ -16,7 +19,7 @@ export const AppContext = createContext<AppCtx>({
   humor: true,
   timeZone: "Europe/Berlin",
   userName: null,
-  badge: "Kapitel 2",
+  badge: DEFAULT_BADGE,
   toast: () => undefined,
 });
 
@@ -35,6 +38,11 @@ export function useToday(timeZone: string): string {
 
 export function useTargets(): TodayTargets | null | undefined {
   return useLiveQuery(async () => ((await db.meta.get("targets"))?.value as TodayTargets | undefined) ?? null, []);
+}
+
+/** The cached weight trend from the Fitnesstracker; null until the first sync brought one. */
+export function useBodyTrend(): BodyTrend | null | undefined {
+  return useLiveQuery(async () => ((await db.meta.get("bodyTrend"))?.value as BodyTrend | undefined) ?? null, []);
 }
 
 export type DayEntry = MealEntryDto & { date: string; mealType: MealType };

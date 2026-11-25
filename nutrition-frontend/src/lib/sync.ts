@@ -6,7 +6,7 @@
 import { useSyncExternalStore } from "react";
 import { ApiError, OfflineError, apiJson } from "./api";
 import { cacheFood, db, getMeta, setMeta, type FailedRow, type OutboxRow } from "./db";
-import type { DeletionKind, MealEntryDto, SyncOpResult, SyncPull, TodayTargets } from "./types";
+import type { BodyTrend, DeletionKind, MealEntryDto, SyncOpResult, SyncPull, TodayTargets } from "./types";
 
 // ─── State for the indicator ────────────────────────────────────────────────────────────────────
 
@@ -206,7 +206,19 @@ async function pull(fetchImpl: typeof fetch): Promise<void> {
 
 async function refreshTargets(fetchImpl: typeof fetch): Promise<void> {
   await setMeta("targets", await apiJson<TodayTargets>("/nutrition/targets/today", {}, fetchImpl));
+  // Weight trend for the progress view, cached for offline. Not part of the sync's success: an
+  // older backend without the endpoint, or a hiccup here, leaves the last cached trend in place.
+  // Measurements change a few times a day at most: once per app start and every 10 minutes.
+  if (Date.now() - trendFetchedAt < 10 * 60_000) return;
+  try {
+    await setMeta("bodyTrend", await apiJson<BodyTrend>("/nutrition/body-trend?days=30", {}, fetchImpl));
+    trendFetchedAt = Date.now();
+  } catch {
+    /* keep the cached trend */
+  }
 }
+
+let trendFetchedAt = 0;
 
 // ─── Scheduling ─────────────────────────────────────────────────────────────────────────────────
 

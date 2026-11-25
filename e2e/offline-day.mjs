@@ -1,16 +1,9 @@
 // Roadmap 03 acceptance: a nutrition day logged offline in the mobile viewport syncs on reconnect.
 // Test account only (from /secrets/.env.claude.local). Output allowlist: step names, counts,
 // booleans, sizes. Never credentials, cookies, tokens or response bodies.
-import { readFileSync } from "node:fs";
 import { chromium } from "playwright";
+import { KCAL, OUT, env, scrub } from "./env.mjs";
 
-const env = {};
-for (const line of readFileSync("/secrets/.env.claude.local", "utf8").split("\n")) {
-  const m = line.match(/^\s*([A-Z_]+)\s*[:=]\s*(.*?)\s*$/);
-  if (m) env[m[1]] = m[2].replace(/^["']|["']$/g, "");
-}
-const KCAL = "https://kcal.pwa-tree.de";
-const scrub = (s) => String(s).replace(/[A-Za-z0-9_.-]{28,}/g, "<redacted>").replaceAll(env.TEST_PWA_EMAIL, "<email>").slice(0, 160);
 const TAG = `E2E-${Date.now().toString(36)}`;
 
 const browser = await chromium.launch();
@@ -155,7 +148,7 @@ check("Rückgängig stellt ihn wieder her", await rowsReach(page, offlineCount))
 await page.reload({ waitUntil: "domcontentloaded" });
 const reloaded = await page.getByTestId("screen-today").waitFor({ timeout: 15000 }).then(() => true, () => false);
 check("Offline-Reload: App startet aus Service Worker + IndexedDB", reloaded && (await rowsReach(page, offlineCount)));
-await page.screenshot({ path: "/out/kcal-offline-today-390.png", fullPage: true });
+await page.screenshot({ path: `${OUT}/kcal-offline-today-390.png`, fullPage: true });
 
 // ─── 3. Back online: sync, then prove it from a fresh device ─────────────────────────────────
 await ctx.setOffline(false);
@@ -163,13 +156,13 @@ offlinePhase = false;
 await page.evaluate(() => window.dispatchEvent(new Event("online")));
 check("Nach Reconnect „Synchronisiert“", await waitTone(page, "synced", 30000), await page.getByTestId("sync-status").textContent());
 await layoutCheck(page, "Heute");
-await page.screenshot({ path: "/out/kcal-today-390.png", fullPage: true });
+await page.screenshot({ path: `${OUT}/kcal-today-390.png`, fullPage: true });
 
 for (const [hash, name] of [["rezepte", "Rezepte"], ["fortschritt", "Fortschritt"], ["export", "Export"], ["mehr", "Mehr"]]) {
   await page.getByRole("link", { name, exact: true }).click();
   await page.getByTestId(`screen-${hash === "rezepte" ? "recipes" : hash === "fortschritt" ? "progress" : hash === "export" ? "export" : "more"}`).waitFor();
   await layoutCheck(page, name);
-  await page.screenshot({ path: `/out/kcal-${hash}-390.png`, fullPage: true });
+  await page.screenshot({ path: `${OUT}/kcal-${hash}-390.png`, fullPage: true });
 }
 
 const ctx2 = await browser.newContext(device);

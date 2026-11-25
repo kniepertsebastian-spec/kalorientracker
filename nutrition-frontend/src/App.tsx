@@ -1,21 +1,24 @@
 import { useLiveQuery } from "dexie-react-hooks";
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { checkSession, login, logout, setAccessToken, setSessionLostHandler, type SessionState, type User } from "./lib/api";
-import { greeting, loadHumor, phaseLine, saveHumor } from "./lib/copy";
+import { greeting, loadHumor, phaseLine, saveHumor, trainingLine } from "./lib/copy";
 import { clearLocalData, db, getMeta, setMeta } from "./lib/db";
 import { addDays, budget, dayTotals, streak } from "./lib/day";
-import { AppContext, useEntries, useTargets, useToday, type AppCtx } from "./lib/hooks";
+import { AppContext, DEFAULT_BADGE, useEntries, useTargets, useToday, type AppCtx } from "./lib/hooks";
 import { startSyncLoop, syncNow, useSyncState } from "./lib/sync";
-import { Export } from "./screens/Export";
-import { More } from "./screens/More";
-import { Progress } from "./screens/Progress";
-import { Recipes } from "./screens/Recipes";
 import { Today } from "./screens/Today";
-import { Mascot } from "./ui/Mascot";
+import { Mascot, type MascotMood } from "./ui/Mascot";
 import { SyncStatusIndicator } from "./ui/SyncStatusIndicator";
 
 const FITNESS_URL = import.meta.env.VITE_FITNESS_URL ?? "https://fitness.pwa-tree.de";
 const BADGE_KEY = "kcal.badge";
+
+// Today is the start screen and stays in the main bundle; the other tabs load on first visit
+// (the service worker precaches them, so this works offline too).
+const Recipes = lazy(() => import("./screens/Recipes").then((m) => ({ default: m.Recipes })));
+const Progress = lazy(() => import("./screens/Progress").then((m) => ({ default: m.Progress })));
+const Export = lazy(() => import("./screens/Export").then((m) => ({ default: m.Export })));
+const More = lazy(() => import("./screens/More").then((m) => ({ default: m.More })));
 
 const TABS = [
   { id: "heute", label: "Heute", icon: "◐" },
@@ -85,7 +88,7 @@ export function App() {
     <main className="shell narrow">
       <header className="top">
         <span className="brand">
-          <Mascot sunglasses={false} flame={false} size={32} /> Kalorientracker
+          <Mascot mood="default" flame={false} size={32} /> Kalorientracker
         </span>
       </header>
       {boot.kind === "loading" && <p className="muted">Lade …</p>}
@@ -104,7 +107,7 @@ export function App() {
 
 function Shell({ user, humor, onHumor, onNeedLogin, onLoggedOut }: { user: User; humor: boolean; onHumor: (on: boolean) => void; onNeedLogin: () => void; onLoggedOut: () => void }) {
   const [tab, setTab] = useState<TabId>(tabFromHash);
-  const [badge, setBadgeState] = useState(() => localStorage.getItem(BADGE_KEY) ?? "Kapitel 2");
+  const [badge, setBadgeState] = useState(() => localStorage.getItem(BADGE_KEY) ?? DEFAULT_BADGE);
   const [toastState, setToast] = useState<{ id: number; message: string; action?: { label: string; run: () => void } } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const targets = useTargets();
@@ -148,6 +151,10 @@ function Shell({ user, humor, onHumor, onNeedLogin, onLoggedOut }: { user: User;
   const days = loggedDays ? streak(loggedDays, today) : 0;
   // No phase line while loading; "no profile" only when the Fitnesstracker says so.
   const phaseText = !targets ? null : phase ? phaseLine(phase, humor) : targets.profileComplete ? null : phaseLine(null, humor);
+  const training = targets ? trainingLine(targets.trainingPhase, targets.trainingPaused) : null;
+  const hour = new Date().getHours();
+  // Mood: over budget by more than a snack shows a sweat drop; nothing logged by noon, sleepy eyes.
+  const mood: MascotMood = b?.proteinReached ? "sunglasses" : b && b.remainingKcal < -150 ? "over" : todayEntries && todayEntries.length === 0 && hour >= 12 ? "sleepy" : "default";
 
   const ctx = useMemo<AppCtx>(() => ({ humor, timeZone, userName: user.firstName ?? user.displayName, badge, toast }), [humor, timeZone, user, badge, toast]);
 
@@ -163,19 +170,19 @@ function Shell({ user, humor, onHumor, onNeedLogin, onLoggedOut }: { user: User;
       <main className="shell">
         <header className="top">
           <span className="brand">
-            <Mascot sunglasses={!!b?.proteinReached} flame={days >= 3} />
+            <Mascot mood={mood} flame={days >= 3} />
             Kalorientracker
           </span>
           <SyncStatusIndicator />
         </header>
         {tab === "heute" && (
           <div className="greet">
-            <h1>{greeting(ctx.userName, new Date().getHours(), humor)}</h1>
-            <p className="small muted">
-              {phaseText}
+            <h1>{greeting(ctx.userName, hour, humor, phase)}</h1>
+            <p className="small muted" data-testid="phase-line">
+              {[phaseText, training].filter(Boolean).join(" · ")}
               {days >= 2 && (
                 <>
-                  {phaseText ? " · " : ""}
+                  {phaseText || training ? " · " : ""}
                   <span className="num">{days}</span> Tage in Folge
                 </>
               )}
@@ -193,10 +200,12 @@ function Shell({ user, humor, onHumor, onNeedLogin, onLoggedOut }: { user: User;
         )}
 
         {tab === "heute" && <Today today={today} />}
-        {tab === "rezepte" && <Recipes today={today} />}
-        {tab === "fortschritt" && <Progress today={today} />}
-        {tab === "export" && <Export />}
-        {tab === "mehr" && <More user={user} onHumor={onHumor} onBadge={setBadge} onLogout={doLogout} />}
+        <Suspense fallback={<p className="small muted screen">Lädt …</p>}>
+          {tab === "rezepte" && <Recipes today={today} />}
+          {tab === "fortschritt" && <Progress today={today} />}
+          {tab === "export" && <Export />}
+          {tab === "mehr" && <More user={user} onHumor={onHumor} onBadge={setBadge} onLogout={doLogout} />}
+        </Suspense>
       </main>
 
       {toastState && (

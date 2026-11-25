@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { clearRating, deleteEntry, logEntry, setRating, undoDeleteEntry } from "./actions";
+import { clearRating, deleteEntry, isQuickDuplicate, logEntry, logEntryChecked, setRating, undoDeleteEntry } from "./actions";
 import { setAccessToken } from "./api";
 import { clearLocalData, db } from "./db";
 import { applyPull, buildPushBody, getSyncState, settle, syncNow } from "./sync";
@@ -169,5 +169,36 @@ describe("offline day and sync", () => {
     expect(body.mealEntries).toEqual([{ mealLogId: "l1", entry: { id: "e1", quantity: 1, unitLabel: "g" } }]);
     expect(body.deletions.ratings).toEqual(["r9"]);
     expect(body.deletions.foods).toEqual([]);
+  });
+});
+
+describe("duplicate detection (quick repeat)", () => {
+  const base = { id: "a", name: "Magerquark", foodId: "f-quark", recipeId: null, quantity: 250, unitLabel: "g", createdAt: "2026-11-25T08:00:00.000Z" };
+
+  it("flags the same food, amount and unit within two minutes only", () => {
+    expect(isQuickDuplicate(base, { ...base, id: "b", createdAt: "2026-11-25T08:01:30.000Z" })).toBe(true);
+    expect(isQuickDuplicate(base, { ...base, id: "b", createdAt: "2026-11-25T08:02:30.000Z" })).toBe(false);
+    expect(isQuickDuplicate(base, { ...base, id: "b", quantity: 200 })).toBe(false);
+    expect(isQuickDuplicate(base, { ...base, id: "b", unitLabel: "Becher" })).toBe(false);
+    expect(isQuickDuplicate(base, { ...base, id: "b", foodId: "f-skyr" })).toBe(false);
+    expect(isQuickDuplicate(base, base)).toBe(false);
+  });
+
+  it("compares free entries by name", () => {
+    const free = { ...base, foodId: null, name: "Döner" };
+    expect(isQuickDuplicate(free, { ...free, id: "b", name: " döner " })).toBe(true);
+    expect(isQuickDuplicate(free, { ...free, id: "b", name: "Dürüm" })).toBe(false);
+  });
+
+  it("logs the repeat anyway and reports it, so the toast can offer to undo", async () => {
+    srv.setOffline(true);
+    const input = { date: "2026-11-25", mealType: "SNACK" as const, source: { type: "food" as const, food: food() }, quantity: 250, unitLabel: "g" };
+    expect((await logEntryChecked(input)).duplicate).toBe(false);
+    const second = await logEntryChecked(input);
+    expect(second.duplicate).toBe(true);
+    expect(await db.mealEntries.where("date").equals("2026-11-25").count()).toBe(2);
+    expect((await logEntryChecked({ ...input, quantity: 100 })).duplicate).toBe(false);
+    await deleteEntry(second.entry);
+    expect(await db.mealEntries.where("date").equals("2026-11-25").count()).toBe(2);
   });
 });
