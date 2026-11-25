@@ -49,6 +49,9 @@ await page.keyboard.press("Escape");
 await dlg.waitFor({ state: "detached", timeout: 5000 }).catch(() => undefined);
 await page.reload({ waitUntil: "networkidle" });
 check("Reload öffnet das Sheet nicht erneut", (await page.getByRole("dialog").count()) === 0);
+const sw = page.getByTestId("app-switch");
+const swBox = await sw.boundingBox();
+check("Kopf: Link zum Fitnesstracker", (await sw.isVisible()) && /^https:\/\/fitness\./.test((await sw.getAttribute("href")) ?? "") && !!swBox && swBox.height >= 44, swBox ? `${Math.round(swBox.height)} px hoch` : "fehlt");
 
 ({ dlg, opened } = await launch("#sprache"));
 check("#sprache öffnet die Sprachaufnahme", opened && (await dlg.getByTestId("record").isVisible().catch(() => false)));

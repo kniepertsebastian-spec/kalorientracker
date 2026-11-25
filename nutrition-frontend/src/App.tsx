@@ -171,9 +171,14 @@ function Shell({ user, humor, onHumor, onNeedLogin, onLoggedOut }: { user: User;
         <header className="top">
           <span className="brand">
             <Mascot mood={mood} flame={days >= 3} />
-            Kalorientracker
+            <span className="brand-name">Kalorientracker</span>
           </span>
-          <SyncStatusIndicator />
+          <span className="top-actions">
+            <SyncStatusIndicator />
+            <a className="app-switch" href={FITNESS_URL} aria-label="Zum Fitnesstracker wechseln" data-testid="app-switch">
+              Fitness ↗
+            </a>
+          </span>
         </header>
         {tab === "heute" && (
           <div className="greet">

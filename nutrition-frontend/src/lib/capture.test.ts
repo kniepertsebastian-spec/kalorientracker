@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
-import { describe, expect, it } from "vitest";
-import { candidateToFood, captureShare, checkPlausibility, createDeduper, expectedKcal, extractUrl, importNote, isPending, pickUnit, recorderMimeType, takeShare, type FoodCandidate } from "./capture";
+import { describe, expect, it, vi } from "vitest";
+import { candidateToFood, captureShare, checkPlausibility, createDeduper, expectedKcal, saveLearnedFood, extractUrl, importNote, isPending, pickUnit, recorderMimeType, takeShare, type FoodCandidate } from "./capture";
 import { snapshotFromFood } from "./day";
 import { emptyNutrients, type Nutrients } from "./nutrients";
 
@@ -153,5 +153,15 @@ describe("recipe import", () => {
     expect(importNote({ url: "https://example.org/r", draft })).toBe("Quelle: https://example.org/r\n\n1. Kochen\n2. Essen");
     expect(importNote({ url: null, draft: { ...draft, steps: [] } })).toBeNull();
     expect(importNote({ url: null, draft: { ...draft, steps: ["x".repeat(3000)] } })!.length).toBe(2000);
+  });
+});
+
+describe("saveLearnedFood", () => {
+  it("unwraps the { status, food } answer so the food can be cached by id", async () => {
+    const food = { id: "f1", name: "Skyr", brand: null, barcode: "4001", basis: "PER_100G" as const, densityGPerMl: null, per100: n({ kcal: 83 }), estimatedFields: [], units: [] };
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ status: "applied", food }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    const saved = await saveLearnedFood({ name: " Skyr ", brand: null, barcode: "4001", basis: "PER_100G", per100: n({ kcal: 83 }), estimatedFields: [], units: [] }, fetchImpl);
+    expect(saved.id).toBe("f1");
+    expect(saved.name).toBe("Skyr");
   });
 });

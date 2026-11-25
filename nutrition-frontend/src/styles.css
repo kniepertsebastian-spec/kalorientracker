@@ -142,14 +142,48 @@ dd,
   justify-content: space-between;
   align-items: center;
   gap: 8px;
+  min-width: 0; /* a grid item: without this it grows to its content instead of letting the name give way */
   min-height: var(--tap);
+}
+
+/* Right side of the header: sync status and the switch to the Fitnesstracker (same account). */
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+a.app-switch {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
   font-weight: 700;
+}
+/* The name gives way first: below 400 px (sync status + "Fitness ↗" need ~212 px) only the mascot stays. */
+.brand-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 399px) {
+  .brand-name {
+    display: none;
+  }
 }
 
 .greet {

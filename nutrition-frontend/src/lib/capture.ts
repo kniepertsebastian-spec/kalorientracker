@@ -132,9 +132,10 @@ export interface LearnedFoodInput {
 }
 
 /** Layer 1: the product is saved as the user's own food, with its barcode, so the next scan finds it. */
-export async function saveLearnedFood(input: LearnedFoodInput): Promise<FoodDto> {
+export async function saveLearnedFood(input: LearnedFoodInput, fetchImpl: typeof fetch = fetch): Promise<FoodDto> {
   const id = newId();
-  return apiJson<FoodDto>(`/nutrition/foods/${id}`, {
+  // PUT /nutrition/foods/:id answers { status, food } (like the sync push), not the bare food.
+  const res = await apiJson<{ status: "applied" | "stale"; food: FoodDto }>(`/nutrition/foods/${id}`, {
     method: "PUT",
     body: JSON.stringify({
       name: input.name.trim().slice(0, 200),
@@ -146,7 +147,9 @@ export async function saveLearnedFood(input: LearnedFoodInput): Promise<FoodDto>
       units: input.units.map((u) => ({ id: newId(), label: u.label.trim().slice(0, 40), baseAmount: u.baseAmount })),
       clientUpdatedAt: new Date().toISOString(),
     }),
-  });
+  }, fetchImpl);
+  if (!res?.food?.id) throw new Error("Das Produkt wurde gespeichert, aber die Antwort war unvollständig.");
+  return res.food;
 }
 
 // ─── Food candidates (voice, recipe import) ─────────────────────────────────────────────────────

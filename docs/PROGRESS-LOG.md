@@ -13,6 +13,19 @@
 
 <!-- Neue Einträge immer direkt HIER unter dieser Linie einfügen (neuester Timestamp zuerst) -->
 
+## [2026-11-25 22:57 CET] – ROADMAP-05: Scan-&-Learn-Speicherfehler, Querverlinkung Fitness ↔ Kalorien
+- **Roadmap-Status:** Abgeschlossen (Nachtrag)
+- **Abgeschlossene Roadmaps bisher:** ROADMAP-01, ROADMAP-02, ROADMAP-03, ROADMAP-04, ROADMAP-05
+- **Was wurde umgesetzt:**
+  - Bugfix (vom Handy gemeldet): „Speichern & direkt loggen“ in Scan & Learn scheiterte mit IndexedDB-`DataError`. `saveLearnedFood` (`nutrition-frontend/src/lib/capture.ts`) nahm die Antwort `{ status, food }` von `PUT /nutrition/foods/:id` als Lebensmittel; jetzt wird `food` entpackt (Regressionstest in `capture.test.ts`). Das Produkt war serverseitig trotzdem gespeichert.
+  - Kalorientracker → Fitnesstracker: „Fitness ↗“-Knopf im Kopf (`App.tsx`, `.top-actions`/`.app-switch` in `styles.css`); unter 400 px nur Maskottchen statt Schriftzug, `.top` mit `min-width: 0` (sonst horizontaler Overflow, von `mobile.mjs` gefunden und ca. 18 Min live).
+  - Fitnesstracker → Kalorientracker: Eintrag „Kalorientracker ↗“ im Hauptmenü und Hinweis-Link auf der Ernährungsseite (`VITE_NUTRITION_URL`), Commit `d8d170da` in PR #118 (131 Frontend-Tests grün, Build ok; nicht deployt).
+  - `e2e/shortcuts.mjs` prüft den Kopf-Link (sichtbar, Ziel fitness.*, ≥ 44 px). Vitest 59 grün, `e2e/run-all.sh` 136 PASS / 0 FAIL.
+- **Stehengeblieben bei / Offene Punkte:**
+  - Fitness-Link geht erst mit Merge von #115–#118 und Deploy aus `~/fitnesstracker` live; Echtgerät-Abnahme; GitHub-Secrets für `e2e-live`.
+- **Nächster konkreter Schritt:**
+  - Auf dem Handy Scan & Learn erneut mit „Speichern & direkt loggen“ testen.
+
 ## [2026-11-25 22:37 CET] – ROADMAP-05: Shortcuts live verifiziert, Autofokus in Sheets, KI im Test-Account
 - **Roadmap-Status:** Abgeschlossen (Nachtrag)
 - **Abgeschlossene Roadmaps bisher:** ROADMAP-01, ROADMAP-02, ROADMAP-03, ROADMAP-04, ROADMAP-05
