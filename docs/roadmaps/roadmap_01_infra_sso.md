@@ -5,7 +5,7 @@
 - **Ziel:** Beide PWAs laufen sauber getrennt im Docker-Setup mit gemeinsamem Single Sign-on (SSO) über Subdomains.
 - **Relevante Dateien:** `docker-compose.yml`, `docker-compose.prod.yml`, `Caddyfile`, `backend/src/plugins/*`, `.env.example`
 - **Empfohlener Claude-Skill:** `server-ops-check`
-- **Status:** In Arbeit – offen: Fitness-Login/Logout live mit Test-Account, Abnahme (Cloudflare-Route `kcal.pwa-tree.de`, SSO im Browser)
+- **Status:** In Arbeit – offen: Fitness-Login/Logout live mit Test-Account, SSO-Abnahme im Browser (Route `kcal.pwa-tree.de` live seit 2026-11-25 12:44)
 
 ---
 

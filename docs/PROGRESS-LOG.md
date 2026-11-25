@@ -3,7 +3,7 @@
 ## Roadmap-Übersicht
 | Roadmap | Fokus | Status | Abgeschlossen am |
 | :--- | :--- | :--- | :--- |
-| `ROADMAP-01-INFRA` | Docker, Caddy, Cookie-SSO, Redis | In Arbeit (deployt, Abnahme offen) | – |
+| `ROADMAP-01-INFRA` | Docker, Caddy, Cookie-SSO, Redis | In Arbeit (live, Abnahme mit Test-Account offen) | – |
 | `ROADMAP-02-BACKEND-DATA` | Prisma-Schema, BLS 4.0, API-Kern, Export | Offen | – |
 | `ROADMAP-03-FRONTEND-PWA` | Design-System, Offline-Sync, Logging-UI | Offen | – |
 | `ROADMAP-04-AI-CAPTURE` | Barcode, Scan & Learn, Sprache, KI-Rezeptimport | Offen | – |
@@ -12,6 +12,17 @@
 ---
 
 <!-- Neue Einträge immer direkt HIER unter dieser Linie einfügen (neuester Timestamp zuerst) -->
+
+## [2026-11-25 12:44 CET] – ROADMAP-01: Cloudflare-Route für kcal.pwa-tree.de live
+- **Roadmap-Status:** In Arbeit (nur noch Live-Abnahme mit Test-Account offen)
+- **Abgeschlossene Roadmaps bisher:** keine
+- **Was wurde umgesetzt:**
+  - Public Hostname `kcal.pwa-tree.de` → `http://fitnesstracker-caddy:8080` im Cloudflare-Tunnel angelegt (durch den Nutzer).
+  - Extern geprüft: `/`, `/api/health`, `/manifest.webmanifest`, `/sw.js` jeweils 200; `POST /api/auth/session` ohne Cookie → `{"authenticated":false}`; fitness.pwa-tree.de unverändert 200.
+- **Stehengeblieben bei / Offene Punkte:**
+  - Test-Account aus `.env.claude.local` existiert in der Prod-DB nicht (Login 401); Anlegen braucht Freigabe. Danach: SSO-Live-Test und Fitness-Login/Logout-Live-Test.
+- **Nächster konkreter Schritt:**
+  - Test-Account anlegen (mit Freigabe), dann Skill `pwa-e2e-inspector` gegen `https://kcal.pwa-tree.de` und ROADMAP-01 abschließen.
 
 ## [2026-11-25 12:40 CET] – ROADMAP-01: Infrastruktur, Cookie-SSO, Redis, Worker, Medien
 - **Roadmap-Status:** In Arbeit (alles umgesetzt und deployt, Abnahme offen)
