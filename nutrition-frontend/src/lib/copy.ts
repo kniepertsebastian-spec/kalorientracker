@@ -1,0 +1,76 @@
+/** Status copy: plain when the humor mode is off, dry when it is on (CLAUDE.md, "Copy"). */
+export function greeting(name: string | null, hour: number, humor: boolean): string {
+  const who = name ? `, ${name}` : "";
+  if (!humor) {
+    if (hour < 11) return `Guten Morgen${who}.`;
+    if (hour < 18) return `Hallo${who}.`;
+    return `Guten Abend${who}.`;
+  }
+  if (hour < 5) return `Noch wach${who}? Der Kühlschrank zählt mit.`;
+  if (hour < 11) return `Guten Morgen${who}. Frühstück ist auch nur eine Zahl.`;
+  if (hour < 18) return `Hallo${who}. Die Waage hat heute frei, wir nicht.`;
+  return `Guten Abend${who}. Snacks werden hier nicht verurteilt – nur gezählt.`;
+}
+
+const HUMOR_KEY = "kcal.humor";
+
+export function loadHumor(storage: Pick<Storage, "getItem"> = localStorage): boolean {
+  return storage.getItem(HUMOR_KEY) !== "off";
+}
+
+export function saveHumor(on: boolean, storage: Pick<Storage, "setItem"> = localStorage): void {
+  storage.setItem(HUMOR_KEY, on ? "on" : "off");
+}
+
+// ─── Micro-copy table of docs/DESIGN-NUTRITION.md: [humor off, humor on] ───────────────────────
+
+const pick = (humor: boolean, plain: string, fun: string) => (humor ? fun : plain);
+
+export function phaseLine(phase: "CUT" | "MAINTAIN" | "BULK" | null, humor: boolean): string {
+  if (phase === "BULK") return pick(humor, "Phase Aufbau", "Phase Aufbau · Die Muskeln haben Hunger.");
+  if (phase === "CUT") return pick(humor, "Phase Cut", "Phase Cut · Formschliff läuft.");
+  if (phase === "MAINTAIN") return pick(humor, "Phase Erhalt", "Phase Erhalt · Kurs halten, Kapitän.");
+  return pick(humor, "Kein Profil im Fitnesstracker", "Ohne Profil im Fitnesstracker raten wir nicht – versprochen.");
+}
+
+export interface BudgetState {
+  remainingKcal: number;
+  remainingProteinG: number | null;
+  proteinReached: boolean;
+}
+
+/** The status line under the hero number. */
+export function budgetLine(s: BudgetState, humor: boolean): string {
+  const kcal = Math.round(Math.abs(s.remainingKcal));
+  if (s.remainingKcal < 0) return pick(humor, `+${kcal} kcal über Tagesziel`, `+${kcal} kcal Bonus-Treibstoff. Morgen wieder sauber.`);
+  if (s.proteinReached) return pick(humor, "Proteinziel 100 % erreicht", "Protein voll. Bizeps-Polizei nickt.");
+  if (s.remainingProteinG !== null && s.remainingProteinG > 0 && s.remainingKcal <= 400) {
+    return pick(humor, `Noch ${Math.round(s.remainingProteinG)} g Protein bei ${kcal} kcal`, "Endgegner-Kombi: Zeit für den Magerquark-Move.");
+  }
+  return pick(humor, "Im Plan", "Läuft. Die Zahlen sind auf deiner Seite.");
+}
+
+export const COPY = {
+  quickAdd: (h: boolean) => pick(h, "Schnelleingabe ohne Produkt", "Pi-mal-Daumen / Auswärts-Schätzung"),
+  emptyRecipes: (h: boolean) => pick(h, "Noch keine Rezepte. Zutaten roh wiegen, fertiges Gericht wiegen, speichern.", "Noch keine Rezepte. Roh wiegen, kochen, nochmal wiegen – die Mathe machen wir."),
+  scanUnknown: (h: boolean) => pick(h, "Produkt nicht gefunden", "Kenn ich noch nicht – zeig mal die Rückseite."),
+  recipeLoading: (h: boolean) => pick(h, "Rezept wird geladen…", "KI schält virtuell die Zwiebeln…"),
+  emptyDay: (h: boolean) => pick(h, "Noch keine Mahlzeiten erfasst", "Noch nichts im Tank. Was gibt's zuerst?"),
+  synced: (h: boolean) => pick(h, "Gespeichert", "Notiert. Die Waage weiß von nichts."),
+  savedOffline: (h: boolean) => pick(h, "Offline gespeichert – wird synchronisiert", "Offline notiert. Der Server erfährt es später."),
+  deleted: (h: boolean) => pick(h, "Eintrag entfernt", "Weg damit. Hat keiner gesehen."),
+  comingSoon: (h: boolean) => pick(h, "Kommt mit dem Scanner-Update", "Wird gerade trainiert. Kommt mit dem Scanner-Update."),
+};
+
+/** 1–10 rating labels; with the humor mode off only the two ends are named. */
+export function ratingLabel(score: number, humor: boolean): string {
+  if (!humor) return score <= 1 ? "Schlecht" : score >= 10 ? "Sehr gut" : `${score} von 10`;
+  if (score <= 2) return "Überlebt";
+  if (score <= 4) return "War ein Kampf";
+  if (score <= 6) return "Solide Pflicht";
+  if (score <= 8) return "Stabile Maschine";
+  if (score === 9) return "Fast perfekt";
+  return "Endboss-Tag";
+}
+
+export const MEAL_LABELS = { BREAKFAST: "Frühstück", LUNCH: "Mittag", DINNER: "Abend", SNACK: "Snack" } as const;

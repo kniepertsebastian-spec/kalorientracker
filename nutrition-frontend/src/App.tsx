@@ -1,77 +1,237 @@
-import { useEffect, useState, type FormEvent } from "react";
-import { checkSession, login, logout, type SessionState } from "./api";
-import { greeting, loadHumor, saveHumor } from "./copy";
+import { useLiveQuery } from "dexie-react-hooks";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { checkSession, login, logout, setAccessToken, setSessionLostHandler, type SessionState, type User } from "./lib/api";
+import { greeting, loadHumor, phaseLine, saveHumor } from "./lib/copy";
+import { clearLocalData, db, getMeta, setMeta } from "./lib/db";
+import { addDays, budget, dayTotals, streak } from "./lib/day";
+import { AppContext, useEntries, useTargets, useToday, type AppCtx } from "./lib/hooks";
+import { startSyncLoop, syncNow, useSyncState } from "./lib/sync";
+import { Export } from "./screens/Export";
+import { More } from "./screens/More";
+import { Progress } from "./screens/Progress";
+import { Recipes } from "./screens/Recipes";
+import { Today } from "./screens/Today";
+import { Mascot } from "./ui/Mascot";
+import { SyncStatusIndicator } from "./ui/SyncStatusIndicator";
 
 const FITNESS_URL = import.meta.env.VITE_FITNESS_URL ?? "https://fitness.pwa-tree.de";
+const BADGE_KEY = "kcal.badge";
 
-type View = { kind: "loading" } | { kind: "error"; message: string } | SessionState;
+const TABS = [
+  { id: "heute", label: "Heute", icon: "◐" },
+  { id: "rezepte", label: "Rezepte", icon: "▤" },
+  { id: "fortschritt", label: "Fortschritt", icon: "▁▃▅" },
+  { id: "export", label: "Export", icon: "⇩" },
+  { id: "mehr", label: "Mehr", icon: "⋯" },
+] as const;
+type TabId = (typeof TABS)[number]["id"];
+
+const tabFromHash = (): TabId => {
+  const id = location.hash.replace(/^#\/?/, "");
+  return TABS.some((t) => t.id === id) ? (id as TabId) : "heute";
+};
+
+type Boot = { kind: "loading" } | { kind: "error"; message: string } | { kind: "login" } | { kind: "ready"; user: User };
+
+/** Same account as before on this device? If not, the local store belongs to someone else: wipe it. */
+async function adoptUser(user: User): Promise<void> {
+  const previous = await getMeta<string>("accountId");
+  if (previous && previous !== user.id) await clearLocalData();
+  await setMeta("accountId", user.id);
+  await setMeta("user", user);
+}
 
 export function App() {
-  const [view, setView] = useState<View>({ kind: "loading" });
+  const [boot, setBoot] = useState<Boot>({ kind: "loading" });
   const [humor, setHumor] = useState(loadHumor);
+  const [showLogin, setShowLogin] = useState(false);
 
-  const refresh = () => {
-    setView({ kind: "loading" });
-    checkSession()
-      .then(setView)
-      .catch(() => setView({ kind: "error", message: "Server nicht erreichbar." }));
-  };
-  useEffect(refresh, []);
+  const start = useCallback(async () => {
+    setBoot({ kind: "loading" });
+    let session: SessionState;
+    try {
+      session = await checkSession();
+    } catch {
+      // Offline (or the server is down): the last signed-in user keeps working on local data.
+      const cached = await getMeta<User>("user");
+      setBoot(cached ? { kind: "ready", user: cached } : { kind: "error", message: "Server nicht erreichbar. Für die erste Anmeldung braucht es eine Verbindung." });
+      return;
+    }
+    if (!session.authenticated) return setBoot({ kind: "login" });
+    setAccessToken(session.accessToken);
+    await adoptUser(session.user);
+    setBoot({ kind: "ready", user: session.user });
+  }, []);
 
-  const toggleHumor = () => {
-    saveHumor(!humor);
-    setHumor(!humor);
+  useEffect(() => void start(), [start]);
+
+  const onLoggedIn = async (session: SessionState) => {
+    if (!session.authenticated) return;
+    setAccessToken(session.accessToken);
+    await adoptUser(session.user);
+    setShowLogin(false);
+    setBoot({ kind: "ready", user: session.user });
+    void syncNow().catch(() => undefined);
   };
+
+  const toggleHumor = (on: boolean) => {
+    saveHumor(on);
+    setHumor(on);
+  };
+
+  if (boot.kind === "ready" && !showLogin) return <Shell user={boot.user} humor={humor} onHumor={toggleHumor} onNeedLogin={() => setShowLogin(true)} onLoggedOut={() => setBoot({ kind: "login" })} />;
 
   return (
-    <main className="shell">
+    <main className="shell narrow">
       <header className="top">
-        <span className="brand">Kalorientracker</span>
-        <label className="toggle">
-          <input type="checkbox" checked={humor} onChange={toggleHumor} />
-          Humor-Modus
-        </label>
+        <span className="brand">
+          <Mascot sunglasses={false} flame={false} size={32} /> Kalorientracker
+        </span>
       </header>
-      {"kind" in view && view.kind === "loading" && <p className="muted">Lade …</p>}
-      {"kind" in view && view.kind === "error" && (
+      {boot.kind === "loading" && <p className="muted">Lade …</p>}
+      {boot.kind === "error" && (
         <section className="card">
-          <p>{view.message}</p>
-          <button onClick={refresh}>Erneut versuchen</button>
+          <p>{boot.message}</p>
+          <button type="button" onClick={() => void start()}>
+            Erneut versuchen
+          </button>
         </section>
       )}
-      {"authenticated" in view && view.authenticated && (
-        <Home name={view.user.firstName ?? view.user.displayName} humor={humor} onLogout={() => void logout().catch(() => undefined).finally(refresh)} />
-      )}
-      {"authenticated" in view && !view.authenticated && <Login onDone={setView} humor={humor} />}
+      {(boot.kind === "login" || showLogin) && <Login humor={humor} onDone={(s) => void onLoggedIn(s)} onCancel={showLogin ? () => setShowLogin(false) : undefined} />}
     </main>
   );
 }
 
-function Home({ name, humor, onLogout }: { name: string | null; humor: boolean; onLogout: () => void }) {
+function Shell({ user, humor, onHumor, onNeedLogin, onLoggedOut }: { user: User; humor: boolean; onHumor: (on: boolean) => void; onNeedLogin: () => void; onLoggedOut: () => void }) {
+  const [tab, setTab] = useState<TabId>(tabFromHash);
+  const [badge, setBadgeState] = useState(() => localStorage.getItem(BADGE_KEY) ?? "Kapitel 2");
+  const [toastState, setToast] = useState<{ id: number; message: string; action?: { label: string; run: () => void } } | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const targets = useTargets();
+  const timeZone = targets?.timeZone ?? user.timeZone ?? "Europe/Berlin";
+  const today = useToday(timeZone);
+  const { authLost } = useSyncState();
+
+  useEffect(() => {
+    const stop = startSyncLoop();
+    setSessionLostHandler(() => undefined); // the indicator shows "Anmeldung nötig"; data stays local
+    return stop;
+  }, []);
+
+  useEffect(() => {
+    const onHash = () => setTab(tabFromHash());
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+
+  // Phase glow on the body: Aufbau lilac/amber, Cut violet/cyan, from the Fitnesstracker's phase.
+  const phase = targets?.nutritionPhase ?? null;
+  useEffect(() => {
+    document.body.dataset.phase = phase === "BULK" ? "bulk" : phase === "CUT" ? "cut" : "neutral";
+  }, [phase]);
+
+  const toast = useCallback<AppCtx["toast"]>((message, action) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast({ id: Date.now(), message, action });
+    toastTimer.current = setTimeout(() => setToast(null), action ? 5000 : 2800);
+  }, []);
+
+  const setBadge = (text: string) => {
+    localStorage.setItem(BADGE_KEY, text);
+    setBadgeState(text);
+  };
+
+  // Mascot: sunglasses once today's protein target is reached, a flame for a 3+ day logging streak.
+  const todayEntries = useEntries(today, today);
+  const loggedDays = useLiveQuery(async () => new Set((await db.mealEntries.where("date").between(addDays(today, -60), today, true, true).toArray()).map((e) => e.date)), [today]);
+  const b = budget(targets ?? null, dayTotals(todayEntries ?? []).values);
+  const days = loggedDays ? streak(loggedDays, today) : 0;
+  // No phase line while loading; "no profile" only when the Fitnesstracker says so.
+  const phaseText = !targets ? null : phase ? phaseLine(phase, humor) : targets.profileComplete ? null : phaseLine(null, humor);
+
+  const ctx = useMemo<AppCtx>(() => ({ humor, timeZone, userName: user.firstName ?? user.displayName, badge, toast }), [humor, timeZone, user, badge, toast]);
+
+  const doLogout = async () => {
+    await logout().catch(() => undefined);
+    setAccessToken(null);
+    await clearLocalData(); // shared devices: nothing of this account stays behind
+    onLoggedOut();
+  };
+
   return (
-    <section className="card">
-      <h1>{greeting(name, new Date().getHours(), humor)}</h1>
-      <p className="muted">
-        Angemeldet über das gemeinsame Konto mit dem Fitnesstracker. Zielkalorien und Protein kommen von dort.
-      </p>
-      <div className="stats">
-        <div>
-          <span className="label">Heute</span>
-          <span className="num">0 kcal</span>
+    <AppContext.Provider value={ctx}>
+      <main className="shell">
+        <header className="top">
+          <span className="brand">
+            <Mascot sunglasses={!!b?.proteinReached} flame={days >= 3} />
+            Kalorientracker
+          </span>
+          <SyncStatusIndicator />
+        </header>
+        {tab === "heute" && (
+          <div className="greet">
+            <h1>{greeting(ctx.userName, new Date().getHours(), humor)}</h1>
+            <p className="small muted">
+              {phaseText}
+              {days >= 2 && (
+                <>
+                  {phaseText ? " · " : ""}
+                  <span className="num">{days}</span> Tage in Folge
+                </>
+              )}
+            </p>
+          </div>
+        )}
+
+        {authLost && (
+          <div className="banner" role="status">
+            <span className="grow small">Sitzung abgelaufen. Einträge werden lokal gesammelt.</span>
+            <button type="button" onClick={onNeedLogin}>
+              Anmelden
+            </button>
+          </div>
+        )}
+
+        {tab === "heute" && <Today today={today} />}
+        {tab === "rezepte" && <Recipes today={today} />}
+        {tab === "fortschritt" && <Progress today={today} />}
+        {tab === "export" && <Export />}
+        {tab === "mehr" && <More user={user} onHumor={onHumor} onBadge={setBadge} onLogout={doLogout} />}
+      </main>
+
+      {toastState && (
+        <div className="toast" role="status" key={toastState.id} data-testid="toast">
+          <span className="grow">{toastState.message}</span>
+          {toastState.action && (
+            <button
+              type="button"
+              className="ghost"
+              onClick={() => {
+                toastState.action!.run();
+                setToast(null);
+              }}
+            >
+              {toastState.action.label}
+            </button>
+          )}
         </div>
-        <div>
-          <span className="label">Protein</span>
-          <span className="num">0 g</span>
-        </div>
-      </div>
-      <button className="secondary" onClick={onLogout}>
-        Abmelden
-      </button>
-    </section>
+      )}
+
+      <nav className="tabs" aria-label="Hauptnavigation">
+        {TABS.map((t) => (
+          <a key={t.id} href={`#/${t.id}`} className="tab" aria-current={tab === t.id ? "page" : undefined}>
+            <span aria-hidden="true" className="tab-icon">
+              {t.icon}
+            </span>
+            {t.label}
+          </a>
+        ))}
+      </nav>
+    </AppContext.Provider>
   );
 }
 
-function Login({ onDone, humor }: { onDone: (state: SessionState) => void; humor: boolean }) {
+function Login({ onDone, humor, onCancel }: { onDone: (state: SessionState) => void; humor: boolean; onCancel?: () => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -94,28 +254,26 @@ function Login({ onDone, humor }: { onDone: (state: SessionState) => void; humor
     <section className="card">
       <h1>Anmelden</h1>
       <p className="muted">
-        Gleiches Konto wie im <a href={FITNESS_URL}>Fitnesstracker</a>. Bist du dort angemeldet, klappt es hier meist
-        automatisch.
+        Gleiches Konto wie im <a href={FITNESS_URL}>Fitnesstracker</a>. Bist du dort angemeldet, klappt es hier meist automatisch.
       </p>
-      <form onSubmit={submit}>
+      <form onSubmit={submit} className="form">
         <label>
           E-Mail
           <input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} />
         </label>
         <label>
           Passwort
-          <input
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+          <input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
         </label>
-        {error && <p className="error">{error}</p>}
-        <button type="submit" disabled={busy}>
+        {error && <p className="small danger">{error}</p>}
+        <button type="submit" className="primary" disabled={busy}>
           {busy ? "Prüfe …" : "Anmelden"}
         </button>
+        {onCancel && (
+          <button type="button" className="ghost" onClick={onCancel}>
+            Später
+          </button>
+        )}
       </form>
     </section>
   );

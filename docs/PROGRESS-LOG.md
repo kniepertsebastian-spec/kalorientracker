@@ -5,13 +5,31 @@
 | :--- | :--- | :--- | :--- |
 | `ROADMAP-01-INFRA` | Docker, Caddy, Cookie-SSO, Redis | Abgeschlossen | 2026-11-25 13:00 |
 | `ROADMAP-02-BACKEND-DATA` | Prisma-Schema, BLS 4.0, API-Kern, Export | Abgeschlossen | 2026-11-25 16:08 |
-| `ROADMAP-03-FRONTEND-PWA` | Design-System, Offline-Sync, Logging-UI | Offen | – |
+| `ROADMAP-03-FRONTEND-PWA` | Design-System, Offline-Sync, Logging-UI | Abgeschlossen | 2026-11-25 16:57 |
 | `ROADMAP-04-AI-CAPTURE` | Barcode, Scan & Learn, Sprache, KI-Rezeptimport | Offen | – |
 | `ROADMAP-05-INTEGRATION-QA` | Fitness-Sync, E2E-Tests, iOS-Feinschliff | Offen | – |
 
 ---
 
 <!-- Neue Einträge immer direkt HIER unter dieser Linie einfügen (neuester Timestamp zuerst) -->
+
+## [2026-11-25 16:57 CET] – ROADMAP-03: Kalorien-PWA offline-fähig live
+- **Roadmap-Status:** Abgeschlossen
+- **Abgeschlossene Roadmaps bisher:** ROADMAP-01, ROADMAP-02, ROADMAP-03
+- **Was wurde umgesetzt:**
+  - `nutrition-frontend/src/lib/`: Dexie-Speicher (`db.ts`), Outbox und Delta-Sync gegen `GET/POST /api/nutrition/sync` (`sync.ts`), Aktionen mit lokalen Nährwert-Snapshots (`actions.ts`, `day.ts`), Rechenlogik als Port des Backends (`nutrients.ts`), Hooks und Sprüche (`hooks.ts`, `copy.ts`). `api.ts` und `copy.ts` von `src/` nach `src/lib/` verschoben.
+  - Screens: `Today.tsx` (Hero mit Restbudget und Deltas, 4 Schnellaktionen, Quick-Add, Tageszeit-Chips, „Wie gestern übernehmen“, Swipe-to-Delete mit Undo, 1–10-Bewertung mit Notiz), `FoodSheet.tsx` (Suche, Favoriten, Zuletzt verwendet, Smart Default, Brüche, Live-Restbudget), `QuickSheets.tsx` (Quick-Add, Barcode), `Recipes.tsx` (Rohzutaten + Endgewicht, Meal-Prep), `Progress.tsx` (7 Tage), `Export.tsx` (7/14/31/90 Tage, PDF/CSV/MD/JSON), `More.tsx` (Humor-Modus, Badge, Sync-Details, Logout).
+  - UI-Bausteine: `ui/SyncStatusIndicator.tsx`, `ui/Mascot.tsx`, `ui/Sheet.tsx`, `ui/SwipeRow.tsx`; Design-Tokens, Phasen-Glow und 44-px-Ziele in `styles.css`; Space Grotesk selbst gehostet.
+  - Tests: 5 Dateien / 32 Vitest-Tests grün (u. a. 10 ml Öl = 9,1 g, Protein-Pasta Roh → Endgewicht, Offline-Outbox mit `fake-indexeddb`, Abbruch nicht gesendeter Creates, Pull überschreibt keine ausstehenden Löschungen). Typecheck und Build sauber. Ungenutzte Dev-Abhängigkeiten `@testing-library/react` und `jsdom` entfernt.
+  - Live-Abnahme mit dem Test-Account (`e2e/offline-day.mjs`, Start mit `e2e/run-offline-day.sh` auf dem Server, 390×844): Online-Eintrag, dann offline Quick-Add ×2, Suche aus dem Cache mit vorbelegter Menge, Bewertung 8 mit Notiz, Swipe + Rückgängig, Offline-Reload aus Service Worker + IndexedDB; nach Reconnect „Synchronisiert“, zweites Gerät sieht alle Einträge und die Bewertung ohne Duplikate; Overflow, Touch-Targets und `tabular-nums` auf allen 5 Tabs geprüft; keine Konsolen- oder HTTP-Fehler; Testdaten danach per UI entfernt. 39/39 PASS in zwei Läufen hintereinander.
+  - `design-system-review`: Bewertungsleiste auf 2×5 umgestellt (vorher 29 px breit), Fitnesstracker-Link unter „Mehr“ als eigenes 44-px-Ziel, Badge „8/10“ ohne Lücke, Überschrift „Oft um diese Zeit“ statt „Typisch fürs Abend“, Rezepte-Empty-State mit Humor-Variante.
+  - Deploy: nur Service `nutrition-frontend` aus `~/ft-nutrition-01` neu gebaut.
+- **Stehengeblieben bei / Offene Punkte:**
+  - Der Test-Account hat im Fitnesstracker kein Profil, daher sind Hero mit Zielwerten, Phasen-Glow und Sonnenbrillen-Maskottchen nur per Unit-Test und Code geprüft, nicht live. Für den Live-Check im Fitnesstracker ein Profil für den Test-Account anlegen.
+  - Foto und Sprache sind Platzhalter, Barcode nur per Zifferneingabe: kommt mit ROADMAP-04.
+  - Weiterhin offen aus ROADMAP-02: PRs #115 und #116 mergen, danach den Stack aus `~/fitnesstracker` deployen und die Worktrees entfernen; Präfix-Bonus für Eingaben wie „Haferfl“.
+- **Nächster konkreter Schritt:**
+  - ROADMAP-04 starten: `docs/roadmaps/roadmap_04_scanner_ki.md` lesen, Kamera-Barcode in `QuickSheets.tsx` einbauen und den Foto-Scan-Endpunkt mit Plausibilitätscheck (Skill `nutrition-math-auditor`) entwerfen.
 
 ## [2026-11-25 16:08 CET] – ROADMAP-02: Backend, Lebensmittel-DB und API live
 - **Roadmap-Status:** Abgeschlossen
