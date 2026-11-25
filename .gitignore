@@ -1,1 +1,14 @@
-.claude
+node_modules/
+dist/
+*.tsbuildinfo
+dev-dist/
+coverage/
+test-results/
+playwright-report/
+.env
+.env.*
+!.env.example
+# Test-account credentials for live checks (see .claude/skills/pwa-e2e-inspector) — never commit.
+.env.claude.local
+.claude/settings.local.json
+.DS_Store
