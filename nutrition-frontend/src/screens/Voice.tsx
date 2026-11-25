@@ -30,7 +30,7 @@ export function rowsFromPreview(p: VoicePreview): Row[] {
 }
 
 /** Voice: "200 g Skyr und eine Banane" → matched against the food DB → preview → confirm. */
-export function VoiceSheet({ date, initialMealType, onClose }: { date: string; initialMealType: MealType; onClose: () => void }) {
+export function VoiceSheet({ date, initialMealType, focusText = false, onClose }: { date: string; initialMealType: MealType; focusText?: boolean; onClose: () => void }) {
   const { humor, toast } = useApp();
   const [phase, setPhase] = useState<"idle" | "recording" | "thinking">("idle");
   const [text, setText] = useState("");
@@ -171,7 +171,7 @@ export function VoiceSheet({ date, initialMealType, onClose }: { date: string; i
               if (text.trim().length >= 2) void run(() => voiceFromText(text.trim()));
             }}
           >
-            <input className="grow" maxLength={2000} value={text} onChange={(e) => setText(e.target.value)} placeholder="… oder hier tippen" aria-label="Mahlzeit als Text" />
+            <input className="grow" maxLength={2000} autoFocus={focusText} enterKeyHint="done" value={text} onChange={(e) => setText(e.target.value)} placeholder="… oder hier tippen" aria-label="Mahlzeit als Text" />
             <button type="submit" disabled={text.trim().length < 2 || phase !== "idle"}>
               Auswerten
             </button>

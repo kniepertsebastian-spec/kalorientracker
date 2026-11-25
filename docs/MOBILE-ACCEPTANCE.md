@@ -30,11 +30,13 @@ Ergebnis je Zeile mit Datum, Gerät und OS-Version eintragen.
 - [ ] Sprache: Mikrofon-Berechtigung, Aufnahme startet/stoppt, Transkript-Prüfung erscheint.
 - [ ] Rezept per „Teilen“ aus Instagram/Safari: iOS kennt kein Web-Share-Target; Link kopieren → Rezepte → Importieren.
 - [ ] Tastatur verdeckt in Sheets nicht den „Eintragen“-Button (iPhone SE und Pro Max).
+- [ ] Shortcut per Kurzbefehl: Kurzbefehle-App → neuer Kurzbefehl → „URL öffnen“ mit `https://kcal.pwa-tree.de/#snack` (bzw. `#sprache`) → zum Home-Bildschirm, auf die Action-Taste oder auf „Auf Rückseite tippen“ legen. Öffnet in Safari (eigene Anmeldung, Daten kommen per Sync); iOS kennt keine App-Shortcuts für Web-Apps.
 
 ### Android (Chrome)
 
 - [ ] Installieren über das Chrome-Menü bzw. den Installations-Hinweis; Start im Standalone-Modus.
 - [ ] Teilen aus Instagram/YouTube → „Kalorientracker“ als Ziel → Import-Sheet mit dem Link.
+- [ ] Langer Druck aufs App-Icon: „Snack“ öffnet das Textfeld (Mahlzeit = Snack, Tastatur offen), „Sprache“ die Aufnahme.
 - [ ] Barcode (Rückkamera), Nährwertfoto, Sprachaufnahme wie oben.
 - [ ] Offline-Kaltstart und Sync wie oben.
 - [ ] Optional: TWA-App aus `android/` (siehe `android/README.md`) – ohne `assetlinks.json` mit Adressleiste.

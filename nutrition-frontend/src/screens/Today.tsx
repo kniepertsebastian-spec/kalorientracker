@@ -6,6 +6,7 @@ import { db } from "../lib/db";
 import { addDays, budget as computeBudget, dayTotals, formatNumber, frequentEntries, mealTypeForHour, type Budget } from "../lib/day";
 import { useApp, useEntries, useRatings, useTargets, type DayEntry } from "../lib/hooks";
 import { MEAL_TYPES, type FoodDto, type MealType } from "../lib/types";
+import { shortcutFromHash } from "../lib/shortcuts";
 import { SwipeRow } from "../ui/SwipeRow";
 import { FoodSheet } from "./FoodSheet";
 import { QuickAddSheet } from "./QuickSheets";
@@ -15,7 +16,7 @@ const ScanLearnSheet = lazy(() => import("./ScanLearn").then((m) => ({ default: 
 const ScanFlow = lazy(() => import("./Scanner").then((m) => ({ default: m.ScanFlow })));
 const VoiceSheet = lazy(() => import("./Voice").then((m) => ({ default: m.VoiceSheet })));
 
-type Open = null | { kind: "search"; food?: FoodDto } | { kind: "quick" } | { kind: "barcode" } | { kind: "photo" } | { kind: "voice" };
+type Open = null | { kind: "search"; food?: FoodDto } | { kind: "quick" } | { kind: "barcode" } | { kind: "photo" } | { kind: "voice"; snack?: boolean };
 
 export function Today({ today }: { today: string }) {
   const { humor, badge, toast } = useApp();
@@ -25,6 +26,19 @@ export function Today({ today }: { today: string }) {
   const yesterdayCount = useLiveQuery(() => db.mealEntries.where("date").equals(addDays(today, -1)).count(), [today]) ?? 0;
   const [open, setOpen] = useState<Open>(null);
   const slot = mealTypeForHour(new Date().getHours());
+
+  // App shortcuts: #sprache opens voice capture, #snack the text field for a quick snack.
+  useEffect(() => {
+    const apply = () => {
+      const s = shortcutFromHash(location.hash);
+      if (!s) return;
+      setOpen(s === "snack" ? { kind: "voice", snack: true } : { kind: "voice" });
+      history.replaceState(null, "", "#heute");
+    };
+    apply();
+    window.addEventListener("hashchange", apply);
+    return () => window.removeEventListener("hashchange", apply);
+  }, []);
 
   const totals = dayTotals(entries ?? []);
   const b = computeBudget(targets ?? null, totals.values);
@@ -132,7 +146,7 @@ export function Today({ today }: { today: string }) {
       <Suspense fallback={null}>
       {open?.kind === "barcode" && <ScanFlow date={today} initialMealType={slot} onClose={() => setOpen(null)} />}
       {open?.kind === "photo" && <ScanLearnSheet date={today} initialMealType={slot} onClose={() => setOpen(null)} />}
-      {open?.kind === "voice" && <VoiceSheet date={today} initialMealType={slot} onClose={() => setOpen(null)} />}
+      {open?.kind === "voice" && <VoiceSheet date={today} initialMealType={open.snack ? "SNACK" : slot} focusText={open.snack} onClose={() => setOpen(null)} />}
       </Suspense>
     </div>
   );

@@ -27,6 +27,11 @@ export default defineConfig({
         orientation: "portrait",
         background_color: "#0B0914",
         theme_color: "#0B0914",
+        // Long press on the installed app icon (Android/Chrome); on iOS via a Kurzbefehl with the same URL.
+        shortcuts: [
+          { name: "Snack eintragen (Text)", short_name: "Snack", description: "Kurz tippen, was es war", url: "/#snack", icons: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }] },
+          { name: "Per Sprache eintragen", short_name: "Sprache", description: "Mahlzeit einsprechen", url: "/#sprache", icons: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }] },
+        ],
         icons: [
           { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
           { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },

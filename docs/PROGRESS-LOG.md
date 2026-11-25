@@ -13,6 +13,19 @@
 
 <!-- Neue Einträge immer direkt HIER unter dieser Linie einfügen (neuester Timestamp zuerst) -->
 
+## [2026-11-25 22:09 CET] – ROADMAP-05: Nachtrag App-Shortcuts „Snack“ und „Sprache“
+- **Roadmap-Status:** Abgeschlossen (Nachtrag)
+- **Abgeschlossene Roadmaps bisher:** ROADMAP-01, ROADMAP-02, ROADMAP-03, ROADMAP-04, ROADMAP-05
+- **Was wurde umgesetzt:**
+  - Manifest-Shortcuts in `nutrition-frontend/vite.config.ts`: `/#snack` (Sprach-Sheet mit fokussiertem Textfeld, Mahlzeit Snack) und `/#sprache` (Aufnahme); gleiche Shortcuts im TWA-Template `android/twa-manifest.template.json`.
+  - `src/lib/shortcuts.ts` (+ Test, fing einen Prototyp-Lookup bei `#constructor`), Auswertung in `screens/Today.tsx`, Hash wird danach durch `#heute` ersetzt; `VoiceSheet` mit `focusText`.
+  - 8 Dateien / 58 Vitest-Tests grün, Typecheck und Build sauber; `nutrition-frontend` deployt, Manifest liefert beide Shortcuts aus.
+- **Stehengeblieben bei / Offene Punkte:**
+  - Login des Test-Accounts schlägt seit 2026-11-25 21:59 CET mit „Invalid email or password“ fehl (Account und `.env.claude.local` unverändert); E2E-Klicktest der Shortcuts steht deshalb aus.
+  - iOS: keine Manifest-Shortcuts; Weg über die Kurzbefehle-App steht in `docs/MOBILE-ACCEPTANCE.md`.
+- **Nächster konkreter Schritt:**
+  - Test-Account-Passwort neu setzen und in `.env.claude.local` eintragen, dann `e2e/run-all.sh` und einen Klicktest auf `/#snack` und `/#sprache`.
+
 ## [2026-11-25 21:47 CET] – ROADMAP-05: Fitness-Integration, E2E-Suite, Mobile-Abnahme, Feinschliff
 - **Roadmap-Status:** Abgeschlossen (Echtgerät-Abnahme offen)
 - **Abgeschlossene Roadmaps bisher:** ROADMAP-01, ROADMAP-02, ROADMAP-03, ROADMAP-04, ROADMAP-05
