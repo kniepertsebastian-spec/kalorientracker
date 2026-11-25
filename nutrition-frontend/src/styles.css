@@ -22,6 +22,12 @@
   box-sizing: border-box;
 }
 
+/* Form controls don't inherit the page font by default. */
+button,
+input {
+  font-family: inherit;
+}
+
 body {
   margin: 0;
   min-height: 100dvh;
@@ -50,10 +56,21 @@ body {
 
 .toggle {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
+  /* The whole label is the tap target: at least 44 px high, per the iOS guideline. */
+  min-height: 44px;
+  padding: 0 4px;
+  cursor: pointer;
   font-size: 0.85rem;
   color: var(--muted);
+}
+
+.toggle input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--accent);
 }
 
 .card {

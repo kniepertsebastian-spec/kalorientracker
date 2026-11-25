@@ -12,3 +12,4 @@ playwright-report/
 .env.claude.local
 .claude/settings.local.json
 .DS_Store
+e2e/out/

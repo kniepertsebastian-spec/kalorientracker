@@ -3,7 +3,7 @@
 ## Roadmap-Übersicht
 | Roadmap | Fokus | Status | Abgeschlossen am |
 | :--- | :--- | :--- | :--- |
-| `ROADMAP-01-INFRA` | Docker, Caddy, Cookie-SSO, Redis | In Arbeit (live, Abnahme mit Test-Account offen) | – |
+| `ROADMAP-01-INFRA` | Docker, Caddy, Cookie-SSO, Redis | Abgeschlossen | 2026-11-25 13:00 |
 | `ROADMAP-02-BACKEND-DATA` | Prisma-Schema, BLS 4.0, API-Kern, Export | Offen | – |
 | `ROADMAP-03-FRONTEND-PWA` | Design-System, Offline-Sync, Logging-UI | Offen | – |
 | `ROADMAP-04-AI-CAPTURE` | Barcode, Scan & Learn, Sprache, KI-Rezeptimport | Offen | – |
@@ -12,6 +12,20 @@
 ---
 
 <!-- Neue Einträge immer direkt HIER unter dieser Linie einfügen (neuester Timestamp zuerst) -->
+
+## [2026-11-25 13:00 CET] – ROADMAP-01: Abnahme bestanden, Roadmap abgeschlossen
+- **Roadmap-Status:** Abgeschlossen
+- **Abgeschlossene Roadmaps bisher:** ROADMAP-01
+- **Was wurde umgesetzt:**
+  - SSO-Abnahme live mit dem Test-Account (Playwright, 390×844, `e2e/sso-acceptance.mjs`, Start mit `e2e/run-sso.sh` auf dem Server): Login im Fitnesstracker → Kalorientracker ohne zweite Anmeldung, Refresh-Cookie `Domain=pwa-tree.de`, `HttpOnly`, `Secure`, `SameSite=Strict`; keine 401/403-Schleife; Session übersteht Reload; Logout im Kalorientracker meldet auch den Fitnesstracker ab. Manifest und Service Worker aktiv, kein Overflow, keine Konsolenfehler. 14/14 PASS.
+  - Zusätzlich auf API-Ebene: Login über kcal-Host, Session über fitness-Host, Logout über fitness-Host beendet die kcal-Session.
+  - `nutrition-frontend/src/styles.css`: Humor-Toggle als 44-px-Touch-Target, Buttons/Inputs erben die App-Schrift. Neu deployt.
+  - Hinweis: Ein erstes Prüfskript hat wegen eines Redaction-Fehlers Token des Test-Accounts in der Session ausgegeben; der Refresh-Token wurde sofort per Logout widerrufen, der Access-Token ist nach 15 min abgelaufen. Das Skript im Repo gibt nur noch eine Allowlist aus.
+- **Stehengeblieben bei / Offene Punkte:**
+  - Fitnesstracker-PR #115 mergen, danach den Stack aus `~/fitnesstracker` neu deployen und erst dann den Worktree `~/ft-nutrition-01` entfernen.
+  - Offline-/Sync-Teil des E2E-Ablaufs entfällt hier (die PWA-Hülle speichert noch keine Daten); kommt mit ROADMAP-03.
+- **Nächster konkreter Schritt:**
+  - ROADMAP-02 starten: `docs/roadmaps/roadmap_02_backend_daten.md` lesen, Prisma-Schema für Foods/Meals/Recipes entwerfen und mit dem Skill `prisma-migration-guard` prüfen.
 
 ## [2026-11-25 12:44 CET] – ROADMAP-01: Cloudflare-Route für kcal.pwa-tree.de live
 - **Roadmap-Status:** In Arbeit (nur noch Live-Abnahme mit Test-Account offen)

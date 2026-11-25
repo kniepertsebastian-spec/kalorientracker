@@ -73,5 +73,9 @@ Backups: `scripts/backup.sh` im Fitnesstracker-Repo sichert Datenbank, `uploads`
 
 ## Live-Tests
 
+`e2e/run-sso.sh` (auf dem Server) prüft das SSO beider PWAs im Browser: Login im
+Fitnesstracker, Kalorientracker ohne zweite Anmeldung, gemeinsamer Logout, Manifest, Service
+Worker, Mobile-Layout. Gibt nur PASS/FAIL aus, nie Zugangsdaten oder Token.
+
 Nur mit dem Test-Account aus `.env.claude.local` (`TEST_PWA_URL`, `TEST_PWA_EMAIL`,
 `TEST_PWA_PASSWORD`). Die Datei ist in `.gitignore` und gehört nie ins Repo.
