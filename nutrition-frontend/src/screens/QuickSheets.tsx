@@ -31,7 +31,7 @@ export function QuickAddSheet({ date, initialMealType, budget, onClose }: { date
       <div className="form">
         <label>
           Kalorien (kcal)
-          <input inputMode="decimal" className="num big-input" autoFocus value={kcal} onChange={(e) => setKcal(e.target.value)} />
+          <input inputMode="decimal" className="num big-input" data-autofocus="" value={kcal} onChange={(e) => setKcal(e.target.value)} />
         </label>
         <label>
           Protein in g (optional)
@@ -88,7 +88,7 @@ export function BarcodeSheet({ onFound, onClose }: { onFound: (food: FoodDto) =>
       <div className="form">
         <label>
           EAN / Barcode-Nummer
-          <input inputMode="numeric" className="num big-input" autoFocus value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} />
+          <input inputMode="numeric" className="num big-input" data-autofocus="" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} />
         </label>
         <p className="tiny muted">Der Kamera-Scanner kommt mit dem Scanner-Update. Bis dahin: Nummer unter dem Strichcode eintippen.</p>
         {message && <p className="small danger">{message}</p>}

@@ -93,6 +93,10 @@ jobs:
         if: success() && steps.secrets.outputs.ok == 'true'
         working-directory: e2e
         run: node mobile.mjs
+      - name: App-Shortcuts Snack/Sprache
+        if: success() && steps.secrets.outputs.ok == 'true'
+        working-directory: e2e
+        run: node shortcuts.mjs
       - name: Screenshots
         if: always() && steps.secrets.outputs.ok == 'true'
         uses: actions/upload-artifact@v4

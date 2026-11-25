@@ -171,7 +171,7 @@ export function VoiceSheet({ date, initialMealType, focusText = false, onClose }
               if (text.trim().length >= 2) void run(() => voiceFromText(text.trim()));
             }}
           >
-            <input className="grow" maxLength={2000} autoFocus={focusText} enterKeyHint="done" value={text} onChange={(e) => setText(e.target.value)} placeholder="… oder hier tippen" aria-label="Mahlzeit als Text" />
+            <input className="grow" maxLength={2000} data-autofocus={focusText ? "" : undefined} enterKeyHint="done" value={text} onChange={(e) => setText(e.target.value)} placeholder="… oder hier tippen" aria-label="Mahlzeit als Text" />
             <button type="submit" disabled={text.trim().length < 2 || phase !== "idle"}>
               Auswerten
             </button>

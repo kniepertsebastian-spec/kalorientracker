@@ -119,7 +119,7 @@ export function FoodSheet({ title = "Lebensmittel suchen", date, initialMealType
         className="search"
         placeholder="z. B. Magerquark, Haferflocken …"
         aria-label="Lebensmittel suchen"
-        autoFocus
+        data-autofocus=""
         value={q}
         onChange={(e) => setQ(e.target.value)}
       />

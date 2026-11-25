@@ -13,6 +13,20 @@
 
 <!-- Neue Einträge immer direkt HIER unter dieser Linie einfügen (neuester Timestamp zuerst) -->
 
+## [2026-11-25 22:37 CET] – ROADMAP-05: Shortcuts live verifiziert, Autofokus in Sheets, KI im Test-Account
+- **Roadmap-Status:** Abgeschlossen (Nachtrag)
+- **Abgeschlossene Roadmaps bisher:** ROADMAP-01, ROADMAP-02, ROADMAP-03, ROADMAP-04, ROADMAP-05
+- **Was wurde umgesetzt:**
+  - Test-Account-Login wieder grün (Ursache war ein rsync, der die Server-`.env.claude.local` mit einer alten Kopie überschrieben hatte; Pushes schließen `.env*` jetzt immer aus).
+  - Neuer E2E-Test `e2e/shortcuts.mjs` (Manifest, `/#snack` öffnet Sheet mit fokussiertem Textfeld, Hash → `#heute`, Reload öffnet nicht erneut, `/#sprache` öffnet Aufnahme); in `e2e/run-all.sh` und im CI-Job `e2e-live`.
+  - Bugfix `nutrition-frontend/src/ui/Sheet.tsx`: `showModal()` zog den Fokus auf „Schließen“ und überstimmte React-`autoFocus`. Felder mit `data-autofocus` bekommen ihn zurück (Schnelleingabe-kcal, Barcode-Eingabe, Suche, Snack-Textfeld).
+  - Gemini-Key für den Test-Account über `PUT /api/ai-settings` hinterlegt (Modell `gemini-3.5-flash-lite`); `capture.mjs` prüft damit die echte Sprach-Vorschau (1 Text-Aufruf pro Lauf).
+  - Vitest 8 Dateien / 58 Tests grün, Build sauber, deployt; `e2e/run-all.sh`: 135 PASS / 0 FAIL, keine Konsolen- oder HTTP-Fehler.
+- **Stehengeblieben bei / Offene Punkte:**
+  - Echtgerät-Abnahme (`docs/MOBILE-ACCEPTANCE.md`), Fitnesstracker-PRs #115–#118 mergen, GitHub-Secrets für `e2e-live` setzen.
+- **Nächster konkreter Schritt:**
+  - Auf dem Handy die App installieren und die Shortcuts „Snack“/„Sprache“ per Long-Press (Android) bzw. Kurzbefehl (iOS) testen.
+
 ## [2026-11-25 22:09 CET] – ROADMAP-05: Nachtrag App-Shortcuts „Snack“ und „Sprache“
 - **Roadmap-Status:** Abgeschlossen (Nachtrag)
 - **Abgeschlossene Roadmaps bisher:** ROADMAP-01, ROADMAP-02, ROADMAP-03, ROADMAP-04, ROADMAP-05
@@ -24,7 +38,7 @@
   - Login des Test-Accounts schlägt seit 2026-11-25 21:59 CET mit „Invalid email or password“ fehl (Account und `.env.claude.local` unverändert); E2E-Klicktest der Shortcuts steht deshalb aus.
   - iOS: keine Manifest-Shortcuts; Weg über die Kurzbefehle-App steht in `docs/MOBILE-ACCEPTANCE.md`.
 - **Nächster konkreter Schritt:**
-  - Test-Account-Passwort neu setzen und in `.env.claude.local` eintragen, dann `e2e/run-all.sh` und einen Klicktest auf `/#snack` und `/#sprache`.
+  - Erledigt im Folge-Eintrag (Login wieder grün, Shortcuts per E2E verifiziert).
 
 ## [2026-11-25 21:47 CET] – ROADMAP-05: Fitness-Integration, E2E-Suite, Mobile-Abnahme, Feinschliff
 - **Roadmap-Status:** Abgeschlossen (Echtgerät-Abnahme offen)
